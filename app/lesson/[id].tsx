@@ -10,8 +10,10 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useToastStore } from '@/stores/toastStore';
 import { roadmapService } from '@/services/roadmapService';
 import { progressService } from '@/services/progressService';
+import { XP_VALUES } from '@/constants';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { LoadingState } from '@/components/common/LoadingState';
@@ -23,6 +25,7 @@ export default function LessonDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors } = useThemeStore();
   const { progress, profile, updateProgress, userId } = useAuthStore();
+  const { showXP, showAchievement, showStreak } = useToastStore();
   const router = useRouter();
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -55,6 +58,20 @@ export default function LessonDetailScreen() {
       const updated = await progressService.completeLesson(userId, lesson.id, progress);
       updateProgress(updated);
       setIsCompleted(true);
+
+      // Fire XP toast
+      showXP(XP_VALUES.LESSON_COMPLETE);
+
+      // Streak toast on new day
+      if (updated.streak_days > (progress.streak_days)) {
+        setTimeout(() => showStreak(updated.streak_days), 600);
+      }
+
+      // Achievement toasts at milestones
+      const total = updated.completed_lessons.length;
+      if (total === 1) setTimeout(() => showAchievement('First Lesson Done!', 'Your journey has begun'), 1200);
+      else if (total === 5) setTimeout(() => showAchievement('5 Lessons Completed!', 'You\'re building momentum'), 1200);
+      else if (total === 10) setTimeout(() => showAchievement('10 Lessons!', 'You\'re on a roll 🚀'), 1200);
     } finally {
       setIsCompleting(false);
     }

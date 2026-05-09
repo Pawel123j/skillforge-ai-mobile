@@ -10,6 +10,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/stores/themeStore';
+import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
 import { quizService } from '@/services/quizService';
 import { progressService } from '@/services/progressService';
@@ -25,6 +26,7 @@ type QuizState = 'question' | 'result';
 export default function QuizScreen() {
   const { moduleId } = useLocalSearchParams<{ moduleId: string }>();
   const { colors } = useThemeStore();
+  const { showXP, showAchievement } = useToastStore();
   const { userId, progress, profile, updateProgress } = useAuthStore();
   const router = useRouter();
 
@@ -82,6 +84,8 @@ export default function QuizScreen() {
         if (passed && progress) {
           const updated = await progressService.completeModule(userId!, moduleId!, progress);
           updateProgress(updated);
+          showXP(100);
+          setTimeout(() => showAchievement('Module Complete! 🎓', 'Next module is now unlocked'), 700);
         }
       } finally {
         setIsSaving(false);

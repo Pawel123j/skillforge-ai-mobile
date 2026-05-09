@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
+import { ToastContainer } from '@/components/common/ToastContainer';
 
 export default function RootLayout() {
   const { theme, colors, loadTheme } = useThemeStore();
@@ -29,6 +30,7 @@ export default function RootLayout() {
         <Stack.Screen name="auth/register" />
         <Stack.Screen name="onboarding/index" />
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="+not-found" />
         <Stack.Screen
           name="lesson/[id]"
           options={{ animation: 'slide_from_bottom' }}
@@ -42,6 +44,7 @@ export default function RootLayout() {
           options={{ animation: 'slide_from_bottom' }}
         />
       </Stack>
+      <ToastContainer />
     </View>
   );
 }

@@ -692,6 +692,579 @@ Flexbox is a one-dimensional layout system that handles either rows or columns.
     type: 'reading',
     created_at: '2024-01-01T00:00:00Z',
   },
+  // ── Backend lessons ──
+  {
+    id: 'be-lesson-1',
+    module_id: 'be-module-1',
+    title: 'Node.js Runtime & Event Loop',
+    content: `# Node.js Runtime & Event Loop
+
+Node.js is a JavaScript runtime built on Chrome's V8 engine. Unlike browsers, Node.js runs on the server and has access to the filesystem, network, and OS.
+
+## The Event Loop
+
+Node.js is single-threaded but handles concurrency through its event loop:
+\`\`\`
+   ┌───────────────────────────┐
+┌─>│           timers          │  ← setTimeout, setInterval
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │     pending callbacks     │
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │       poll (I/O)          │  ← file reads, network
+│  └─────────────┬─────────────┘
+│  ┌─────────────┴─────────────┐
+│  │           check           │  ← setImmediate
+└──┤  close callbacks          │
+   └───────────────────────────┘
+\`\`\`
+
+## CommonJS Modules
+\`\`\`js
+// math.js
+module.exports = { add: (a, b) => a + b };
+
+// app.js
+const { add } = require('./math');
+console.log(add(2, 3)); // 5
+\`\`\`
+
+## ES Modules (modern)
+\`\`\`js
+// math.mjs
+export const add = (a, b) => a + b;
+
+// app.mjs
+import { add } from './math.mjs';
+\`\`\`
+
+## Key Built-in Modules
+- \`fs\` — read/write files
+- \`path\` — file path utilities
+- \`http\` — create HTTP servers
+- \`os\` — operating system info
+- \`process\` — process info and env vars`,
+    order_index: 1,
+    estimated_minutes: 25,
+    type: 'reading',
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'be-lesson-2',
+    module_id: 'be-module-2',
+    title: 'Building REST APIs with Express',
+    content: `# Building REST APIs with Express
+
+Express.js is the most popular Node.js web framework. It provides routing, middleware, and a simple API for building web servers.
+
+## Quick Start
+\`\`\`js
+const express = require('express');
+const app = express();
+
+app.use(express.json()); // parse JSON bodies
+
+app.get('/users', (req, res) => {
+  res.json({ users: [] });
+});
+
+app.post('/users', (req, res) => {
+  const { name, email } = req.body;
+  // create user...
+  res.status(201).json({ id: 1, name, email });
+});
+
+app.listen(3000, () => console.log('Server running on port 3000'));
+\`\`\`
+
+## REST Conventions
+- \`GET /resources\` — list all
+- \`GET /resources/:id\` — get one
+- \`POST /resources\` — create
+- \`PUT /resources/:id\` — replace
+- \`PATCH /resources/:id\` — partial update
+- \`DELETE /resources/:id\` — delete
+
+## Middleware Pattern
+\`\`\`js
+// Logger middleware
+app.use((req, res, next) => {
+  console.log(\`\${req.method} \${req.path}\`);
+  next(); // pass to next handler
+});
+
+// Error handler (4 params = error middleware)
+app.use((err, req, res, next) => {
+  res.status(500).json({ error: err.message });
+});
+\`\`\`
+
+## Route Parameters
+\`\`\`js
+app.get('/users/:id', (req, res) => {
+  const { id } = req.params;
+  const { page = 1, limit = 10 } = req.query;
+  res.json({ id, page, limit });
+});
+\`\`\``,
+    order_index: 1,
+    estimated_minutes: 30,
+    type: 'reading',
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'be-lesson-3',
+    module_id: 'be-module-3',
+    title: 'PostgreSQL & Prisma ORM',
+    content: `# PostgreSQL & Prisma ORM
+
+Prisma is a modern ORM for Node.js and TypeScript that provides type-safe database access.
+
+## Setup
+\`\`\`bash
+npm install prisma @prisma/client
+npx prisma init
+\`\`\`
+
+## Schema Definition
+\`\`\`prisma
+// prisma/schema.prisma
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String?
+  posts     Post[]
+  createdAt DateTime @default(now())
+}
+
+model Post {
+  id        Int    @id @default(autoincrement())
+  title     String
+  content   String?
+  author    User   @relation(fields: [authorId], references: [id])
+  authorId  Int
+}
+\`\`\`
+
+## CRUD Operations
+\`\`\`js
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+// Create
+const user = await prisma.user.create({
+  data: { email: 'alex@example.com', name: 'Alex' }
+});
+
+// Read with relations
+const userWithPosts = await prisma.user.findUnique({
+  where: { id: 1 },
+  include: { posts: true }
+});
+
+// Update
+await prisma.user.update({
+  where: { id: 1 },
+  data: { name: 'Alex Chen' }
+});
+
+// Delete
+await prisma.user.delete({ where: { id: 1 } });
+\`\`\`
+
+## Raw SQL when needed
+\`\`\`js
+const result = await prisma.$queryRaw\`
+  SELECT * FROM users WHERE email LIKE \${query}
+\`;
+\`\`\``,
+    order_index: 1,
+    estimated_minutes: 35,
+    type: 'reading',
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  // ── Mobile lessons ──
+  {
+    id: 'mob-lesson-1',
+    module_id: 'mob-module-1',
+    title: 'React Native Core Components',
+    content: `# React Native Core Components
+
+React Native renders to native UI components, not HTML. Every component maps to a real platform widget.
+
+## Essential Components
+
+### View — the <div> of React Native
+\`\`\`jsx
+import { View, StyleSheet } from 'react-native';
+
+function Card() {
+  return (
+    <View style={styles.card}>
+      {/* children */}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4, // Android shadow
+  },
+});
+\`\`\`
+
+### Text — all text must use this
+\`\`\`jsx
+<Text style={{ fontSize: 18, fontWeight: '700', color: '#111' }}>
+  Hello World
+</Text>
+\`\`\`
+
+### TouchableOpacity — tappable wrapper
+\`\`\`jsx
+<TouchableOpacity onPress={() => alert('Tapped!')} activeOpacity={0.8}>
+  <Text>Tap me</Text>
+</TouchableOpacity>
+\`\`\`
+
+### ScrollView vs FlatList
+- \`ScrollView\` — renders all items at once, great for small lists
+- \`FlatList\` — virtualized, only renders visible items, required for long lists
+
+\`\`\`jsx
+<FlatList
+  data={items}
+  keyExtractor={(item) => item.id}
+  renderItem={({ item }) => <ItemCard item={item} />}
+/>
+\`\`\`
+
+## Flexbox in React Native
+Default flex direction is **column** (unlike CSS where it's row):
+\`\`\`jsx
+<View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
+  <View style={{ flex: 1 }} />
+  <View style={{ flex: 2 }} />
+</View>
+\`\`\``,
+    order_index: 1,
+    estimated_minutes: 30,
+    type: 'reading',
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'mob-lesson-2',
+    module_id: 'mob-module-2',
+    title: 'Expo Router & File-Based Navigation',
+    content: `# Expo Router & File-Based Navigation
+
+Expo Router brings file-system based routing to React Native, inspired by Next.js.
+
+## File Structure → Routes
+\`\`\`
+app/
+  _layout.tsx       → root layout (wraps all screens)
+  index.tsx         → /
+  (tabs)/
+    _layout.tsx     → tab navigator
+    home.tsx        → /home
+    profile.tsx     → /profile
+  user/
+    [id].tsx        → /user/123 (dynamic)
+  modal.tsx         → /modal
+\`\`\`
+
+## Root Layout
+\`\`\`tsx
+import { Stack } from 'expo-router';
+
+export default function RootLayout() {
+  return (
+    <Stack>
+      <Stack.Screen name="index" options={{ title: 'Home' }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+    </Stack>
+  );
+}
+\`\`\`
+
+## Tab Navigator
+\`\`\`tsx
+import { Tabs } from 'expo-router';
+
+export default function TabLayout() {
+  return (
+    <Tabs>
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color }) => <Icon name="home" color={color} />,
+        }}
+      />
+    </Tabs>
+  );
+}
+\`\`\`
+
+## Navigation
+\`\`\`tsx
+import { useRouter, useLocalSearchParams } from 'expo-router';
+
+function MyScreen() {
+  const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+
+  return (
+    <>
+      <Text>User: {id}</Text>
+      <Button onPress={() => router.push('/profile')} />
+      <Button onPress={() => router.back()} />
+    </>
+  );
+}
+\`\`\``,
+    order_index: 1,
+    estimated_minutes: 30,
+    type: 'reading',
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  // ── Python lessons ──
+  {
+    id: 'py-lesson-1',
+    module_id: 'py-module-1',
+    title: 'Python Fundamentals',
+    content: `# Python Fundamentals
+
+Python is a high-level, interpreted language known for its clean syntax and readability. It runs everywhere and is used for web, data science, AI, and automation.
+
+## Variables & Types
+\`\`\`python
+# No type declarations needed (dynamic typing)
+name = "Alex"
+age = 25
+height = 1.8
+is_developer = True
+
+# Type hints (Python 3.5+, optional but recommended)
+name: str = "Alex"
+age: int = 25
+\`\`\`
+
+## Data Structures
+\`\`\`python
+# List — ordered, mutable
+skills = ["Python", "JavaScript", "SQL"]
+skills.append("React")
+first = skills[0]        # "Python"
+last = skills[-1]        # "React"
+slice = skills[1:3]      # ["JavaScript", "SQL"]
+
+# Dictionary — key-value pairs
+user = {"name": "Alex", "age": 25, "active": True}
+user["email"] = "alex@example.com"
+name = user.get("name", "Unknown")  # safe access
+
+# Set — unique values
+unique_tags = {"python", "web", "python"}  # {"python", "web"}
+
+# Tuple — immutable
+coordinates = (48.8566, 2.3522)
+lat, lng = coordinates   # unpacking
+\`\`\`
+
+## Control Flow
+\`\`\`python
+# Comprehensions (Pythonic loops)
+squares = [x**2 for x in range(10)]
+even_squares = [x**2 for x in range(10) if x % 2 == 0]
+
+# Dictionary comprehension
+word_lengths = {word: len(word) for word in ["hello", "world"]}
+\`\`\`
+
+## Functions
+\`\`\`python
+def greet(name: str, greeting: str = "Hello") -> str:
+    return f"{greeting}, {name}!"
+
+# Lambda (anonymous function)
+double = lambda x: x * 2
+
+# *args and **kwargs
+def log(*args, **kwargs):
+    print(args, kwargs)
+\`\`\``,
+    order_index: 1,
+    estimated_minutes: 35,
+    type: 'reading',
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'py-lesson-2',
+    module_id: 'py-module-2',
+    title: 'Object-Oriented Python',
+    content: `# Object-Oriented Python
+
+Python is fully object-oriented. Everything is an object, including functions and classes.
+
+## Classes & Instances
+\`\`\`python
+class Developer:
+    # Class variable (shared by all instances)
+    species = "Homo programmaticus"
+
+    def __init__(self, name: str, language: str):
+        # Instance variables
+        self.name = name
+        self.language = language
+        self._xp = 0  # convention: "private"
+
+    def code(self, hours: int) -> None:
+        self._xp += hours * 10
+        print(f"{self.name} coded for {hours}h (+{hours*10} XP)")
+
+    @property
+    def xp(self) -> int:
+        return self._xp
+
+    def __repr__(self) -> str:
+        return f"Developer(name={self.name!r}, xp={self._xp})"
+
+dev = Developer("Alex", "Python")
+dev.code(2)
+print(dev.xp)     # 20
+print(dev)        # Developer(name='Alex', xp=20)
+\`\`\`
+
+## Inheritance
+\`\`\`python
+class SeniorDeveloper(Developer):
+    def __init__(self, name, language, team_size):
+        super().__init__(name, language)
+        self.team_size = team_size
+
+    def mentor(self) -> None:
+        print(f"{self.name} mentors a team of {self.team_size}")
+
+    def code(self, hours: int) -> None:
+        super().code(hours)
+        self._xp += 5  # Senior bonus
+\`\`\`
+
+## Dataclasses (modern Python)
+\`\`\`python
+from dataclasses import dataclass, field
+from typing import List
+
+@dataclass
+class Project:
+    title: str
+    tech_stack: List[str] = field(default_factory=list)
+    is_complete: bool = False
+
+    def complete(self) -> None:
+        self.is_complete = True
+
+project = Project("Portfolio", ["React", "TypeScript"])
+\`\`\``,
+    order_index: 1,
+    estimated_minutes: 35,
+    type: 'reading',
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'py-lesson-3',
+    module_id: 'py-module-3',
+    title: 'APIs & Web Scraping with Python',
+    content: `# APIs & Web Scraping with Python
+
+Python makes it easy to consume REST APIs and scrape web data.
+
+## HTTP Requests with \`requests\`
+\`\`\`python
+import requests
+
+# GET request
+response = requests.get(
+    "https://api.github.com/users/octocat",
+    headers={"Accept": "application/json"}
+)
+response.raise_for_status()  # raises on 4xx/5xx
+user = response.json()
+print(user["name"])
+
+# POST with JSON body
+response = requests.post(
+    "https://api.example.com/users",
+    json={"name": "Alex", "email": "alex@example.com"},
+    headers={"Authorization": "Bearer TOKEN"}
+)
+\`\`\`
+
+## Building a Simple REST Client
+\`\`\`python
+from dataclasses import dataclass
+from typing import Optional
+import requests
+
+@dataclass
+class APIClient:
+    base_url: str
+    token: Optional[str] = None
+
+    @property
+    def headers(self):
+        h = {"Content-Type": "application/json"}
+        if self.token:
+            h["Authorization"] = f"Bearer {self.token}"
+        return h
+
+    def get(self, path: str) -> dict:
+        r = requests.get(f"{self.base_url}{path}", headers=self.headers)
+        r.raise_for_status()
+        return r.json()
+\`\`\`
+
+## Web Scraping with BeautifulSoup
+\`\`\`python
+from bs4 import BeautifulSoup
+import requests
+
+response = requests.get("https://news.ycombinator.com")
+soup = BeautifulSoup(response.text, "html.parser")
+
+# Find all story titles
+stories = soup.select(".titleline > a")
+for story in stories[:5]:
+    print(story.text, "→", story["href"])
+\`\`\`
+
+## Async Requests (aiohttp)
+\`\`\`python
+import asyncio
+import aiohttp
+
+async def fetch(url: str) -> dict:
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            return await resp.json()
+
+urls = ["https://api.example.com/1", "https://api.example.com/2"]
+results = asyncio.run(asyncio.gather(*[fetch(u) for u in urls]))
+\`\`\``,
+    order_index: 1,
+    estimated_minutes: 30,
+    type: 'reading',
+    created_at: '2024-01-01T00:00:00Z',
+  },
 ];
 
 // ─── Mock Tasks ───────────────────────────────────────────────────────────────
