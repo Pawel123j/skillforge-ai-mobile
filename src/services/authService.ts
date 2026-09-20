@@ -1,6 +1,5 @@
 import { supabase, IS_MOCK_MODE } from '@/lib/supabase';
-import { MOCK_USER_ID, MOCK_PROFILE } from '@/lib/mockData';
-import { Profile } from '@/types';
+import { MOCK_USER_ID } from '@/lib/mockData';
 
 export interface AuthCredentials {
   email: string;
