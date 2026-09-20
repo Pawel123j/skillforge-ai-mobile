@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Animated,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { useThemeStore } from '@/stores/themeStore';
 

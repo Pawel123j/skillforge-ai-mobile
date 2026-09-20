@@ -1,6 +1,19 @@
 # ⚡ SkillForge AI — Mobile Learning Roadmap Assistant
 
-> An AI-powered mobile app that helps aspiring developers follow structured learning roadmaps, complete tasks, build portfolio projects, and track their progress — all with a built-in mentor engine.
+> Mobile app that helps aspiring developers follow structured learning
+> roadmaps, complete tasks, build portfolio projects and track progress,
+> with a built-in mentor engine.
+
+> **Czym jest „AI" w nazwie.** Silnik mentora jest **oparty na regułach**,
+> nie na modelu językowym. Analizuje aktywność użytkownika (dni bez lekcji,
+> długość serii, stosunek lekcji do projektów, liczba zaległych zadań, progi
+> XP) i wybiera podpowiedź z drabinki warunków. Nie ma tu żadnego wywołania
+> API modelu i nie ma na to klucza w konfiguracji.
+>
+> Warstwa serwisów jest napisana tak, żeby dało się ją podmienić na
+> wywołanie modelu bez zmiany reszty aplikacji — sygnatura funkcji i typ
+> zwracany zostają te same. To jest jednak plan, a nie stan obecny, i nazwa
+> projektu tego nie zmienia.
 
 ---
 
@@ -12,7 +25,7 @@ SkillForge AI guides you from zero to job-ready developer through:
 - **Module quizzes** with XP rewards
 - **Task management** to stay organized
 - **Portfolio project suggestions** to impress recruiters
-- **AI Mentor insights** based on your activity patterns
+- **Podpowiedzi mentora** wyliczane z reguł na podstawie aktywności (nie z modelu językowego)
 
 ---
 
@@ -28,7 +41,7 @@ SkillForge AI guides you from zero to job-ready developer through:
 | 📝 **Quizzes** | Multiple-choice quizzes per module with scoring |
 | ✅ **Tasks** | Full CRUD task manager with status and due dates |
 | 🚀 **Projects** | Suggested + custom portfolio projects with GitHub links |
-| 🧠 **AI Mentor** | Rule-based insight engine (OpenAI-ready architecture) |
+| 🧠 **Mentor** | Silnik regułowy; architektura przygotowana pod podmianę na model |
 | 👤 **Profile** | Edit name, change goal/time, toggle dark/light theme |
 
 ---
@@ -229,9 +242,74 @@ If Supabase credentials are not configured, the app automatically runs in **Demo
 - No network calls are made
 - Perfect for running and evaluating locally
 
+Przełącznik jest jeden i jest jawny: `IS_MOCK_MODE` w `src/lib/supabase.ts`.
+Ustawia się sam na `true`, gdy w konfiguracji nie ma adresu i klucza
+Supabase — nie ma osobnej flagi do zapomnienia. Serwisy sprawdzają go
+u siebie i zwracają dane z `src/lib/mockData.ts`.
+
+**Do oceny projektu nie trzeba niczego konfigurować.** `npm install`
+i `npx expo start` wystarczą; Supabase jest potrzebny dopiero, gdy chcesz
+trwałych danych i logowania między urządzeniami.
+
+Zrzuty ekranu: patrz [docs/screenshots/README.md](docs/screenshots/README.md).
+
 ---
 
-## 🧠 AI Mentor Engine
+## ✅ Testy, lint i CI
+
+```bash
+npm run lint         # ESLint
+npm run type-check   # tsc --noEmit
+npm test             # 15 testów silnika mentora
+```
+
+CI uruchamia wszystkie trzy na każdej gałęzi.
+
+**ESLint nie działał do tej pory w ogóle.** Skrypt `lint` był w package.json
+od początku, ale nie było pliku konfiguracyjnego — polecenie kończyło się
+komunikatem „ESLint couldn't find a configuration file". Teraz konfiguracja
+jest, a próg `--max-warnings 23` to **rejestr długu, nie cel**: ma spadać,
+nigdy rosnąć. Zostało 14 ostrzeżeń `react-hooks/exhaustive-deps` i kilka
+nieużywanych zmiennych w ekranach. Tablic zależności świadomie nie ruszałem —
+ich zmiana zmienia, kiedy efekt się uruchamia, a bez możliwości odpalenia
+aplikacji nie da się sprawdzić skutku.
+
+Testy pokrywają silnik mentora, bo to jedyna nietrywialna logika biznesowa
+w projekcie. Sprawdzają przede wszystkim **kolejność reguł**: pierwszy
+pasujący warunek wygrywa i przesłania resztę, więc to, że ostrzeżenie
+o bezczynności ma pierwszeństwo przed gratulacjami za serię, jest decyzją
+produktową — a w kodzie widać ją wyłącznie przez układ `if`-ów.
+
+---
+
+## ⚠️ Znane podatności zależności
+
+`npm audit` zgłasza **1 krytyczną i 13 wysokich**, których **nie da się
+naprawić bez migracji Expo SDK 51 → 57 i React Native 0.74 → 0.87**.
+Wszystko, co dało się naprawić bez zmiany wersji głównych, zostało
+naprawione (58 → 44 zgłoszeń); wersje w obrębie SDK 51 podniesione do
+najnowszych łatek.
+
+Dwie rzeczy warte odnotowania:
+
+1. **To są narzędzia deweloperskie, nie kod aplikacji.** Sprawdzone
+   w drzewie zależności: `react-native` jest oznaczone wyłącznie *przez*
+   `@react-native-community/cli*`, a pozostałe wpisy to `metro`,
+   `@expo/cli`, `tar`, `postcss`, `image-size` i serwer deweloperski.
+   Żadne z nich nie trafia do binarki instalowanej na telefonie. Ryzyko
+   dotyczy maszyny, na której budujesz, a nie użytkownika aplikacji.
+2. **Migracja SDK to osobne zadanie.** Sześć wersji głównych SDK
+   (expo-router 3 → 6, React 18 → 19, nowa architektura React Native)
+   to zmiana, której nie da się zweryfikować bez uruchomienia aplikacji
+   na emulatorze. Zrobiona „na ślepo" byłaby gorsza niż jej brak.
+
+CI raportuje ten stan do logu, ale **nie blokuje** na nim builda —
+blokujące `npm audit` oznaczałoby CI stale czerwone niezależnie od zmian
+w kodzie, a takie CI przestaje się czytać.
+
+---
+
+## 🧠 Silnik mentora
 
 The mentor screen uses a **rule-based engine** that analyzes:
 - Days since last activity → inactivity warnings
@@ -354,7 +432,7 @@ This project is ready to present in technical interviews and demonstrates real-w
 
 ## 📄 License
 
-MIT License — free to use, modify, and distribute.
+MIT — patrz [LICENSE](LICENSE).
 
 ---
 
