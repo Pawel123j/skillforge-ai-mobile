@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, typy, testy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalacja zależności
+        run: npm ci
+
+      - name: Lint
+        # Próg 23 ostrzeżeń to rejestr długu, nie cel. Ma spadać, nigdy rosnąć:
+        # każde nowe ostrzeżenie zapali CI na czerwono, a każde usunięte
+        # powinno obniżyć tę liczbę w package.json.
+        #
+        # Co zostało: 14 × react-hooks/exhaustive-deps i kilka nieużywanych
+        # zmiennych w ekranach. Tablic zależności nie ruszałem — ich zmiana
+        # zmienia, kiedy efekt się uruchamia, a aplikacji nie da się w tym
+        # środowisku uruchomić, żeby sprawdzić skutek.
+        run: npm run lint
+
+      - name: Kontrola typów
+        run: npm run type-check
+
+      - name: Testy
+        run: npm test
+
+      - name: Audyt zależności (raport, bez blokowania)
+        # NIE blokuje builda — i to jest decyzja, którą trzeba uzasadnić.
+        # Pozostałe podatności wysokie i krytyczne wymagają skoku Expo SDK
+        # 51 -> 57 i React Native 0.74 -> 0.87, czyli migracji przez sześć
+        # wersji głównych SDK. Blokujące `npm audit` oznaczałoby tu CI stale
+        # czerwone, niezależnie od tego, co ktoś zmienia w kodzie — a takie
+        # CI przestaje się czytać po tygodniu.
+        #
+        # Krok raportuje stan do logu, żeby był widoczny, zamiast udawać,
+        # że problemu nie ma. Szczegóły i ścieżka migracji: README.
+        run: npm audit --audit-level=high || true
