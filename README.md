@@ -27,6 +27,18 @@ SkillForge AI guides you from zero to job-ready developer through:
 - **Portfolio project suggestions** to impress recruiters
 - **Podpowiedzi mentora** wyliczane z reguł na podstawie aktywności (nie z modelu językowego)
 
+| Onboarding | Dashboard | Roadmap |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/onboarding.png" width="220" alt="Onboarding: wybór celu nauki"> | <img src="docs/screenshots/dashboard.png" width="220" alt="Dashboard: XP, seria, bieżący moduł"> | <img src="docs/screenshots/roadmap.png" width="220" alt="Roadmap: oś modułów z postępem"> |
+| **Quiz** | **Mentor** | |
+| <img src="docs/screenshots/quiz.png" width="220" alt="Quiz modułu"> | <img src="docs/screenshots/mentor.png" width="220" alt="Mentor: podpowiedzi z reguł"> | |
+
+> Zrzuty z **wersji webowej** (Expo web / react-native-web) w widoku telefonu
+> 390×844, w trybie demo. To ten sam kod co w aplikacji natywnej, tylko
+> renderowany przez przeglądarkę, więc na iOS i Androidzie czcionki i cienie
+> mogą wyglądać nieco inaczej. Szczegóły:
+> [docs/screenshots/README.md](docs/screenshots/README.md).
+
 ---
 
 ## ✨ Features
