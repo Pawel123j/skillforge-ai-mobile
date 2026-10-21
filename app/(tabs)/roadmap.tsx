@@ -38,25 +38,24 @@ export default function RoadmapScreen() {
   const goal = profile?.learning_goal;
   const goalColor = goal ? GoalColors[goal] : colors.primary;
 
-  const loadModules = useCallback(async () => {
-    if (!goal || !progress) return;
-    setError(null);
-    try {
-      const data = await roadmapService.getModulesForGoal(
+  const loadModules = useCallback(() => {
+    if (!goal || !progress) return Promise.resolve();
+    return roadmapService.getModulesForGoal(
         goal,
         progress.completed_modules,
         progress.completed_lessons
-      );
+      ).then((data) => {
       setModules(data);
-    } catch (err: any) {
+      setError(null);
+    }).catch((err: Error) => {
       setError(err.message ?? 'Failed to load roadmap');
-    } finally {
+    }).finally(() => {
       setIsLoading(false);
       setIsRefreshing(false);
-    }
+    });
   }, [goal, progress]);
 
-  useEffect(() => { loadModules(); }, []);
+  useEffect(() => { loadModules(); }, [loadModules]);
 
   const onRefresh = async () => { setIsRefreshing(true); await loadModules(); };
 

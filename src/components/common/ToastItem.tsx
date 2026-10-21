@@ -1,11 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Animated,
+  useAnimatedValue,
   TouchableOpacity,
-  Dimensions,
 } from 'react-native';
 import { useThemeStore } from '@/stores/themeStore';
 
@@ -44,9 +44,9 @@ const TOAST_COLORS: Record<ToastType, string> = {
 
 export function ToastItem({ config, onDismiss }: ToastItemProps) {
   const { colors } = useThemeStore();
-  const translateY = useRef(new Animated.Value(-100)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0.85)).current;
+  const translateY = useAnimatedValue(-100);
+  const opacity = useAnimatedValue(0);
+  const scale = useAnimatedValue(0.85);
   const color = TOAST_COLORS[config.type];
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function ToastItem({ config, onDismiss }: ToastItemProps) {
     }, config.duration ?? 2800);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [config.duration, config.id, onDismiss, opacity, scale, translateY]);
 
   return (
     <Animated.View

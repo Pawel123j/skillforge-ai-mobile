@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/stores/themeStore';
@@ -14,7 +14,7 @@ export default function NotFoundScreen() {
       <Text style={styles.emoji}>🔍</Text>
       <Text style={[styles.title, { color: colors.text }]}>Page Not Found</Text>
       <Text style={[styles.message, { color: colors.textSecondary }]}>
-        This screen doesn't exist. Navigate back to the app.
+        This screen doesn&apos;t exist. Navigate back to the app.
       </Text>
       <Button
         title="Go to Dashboard"

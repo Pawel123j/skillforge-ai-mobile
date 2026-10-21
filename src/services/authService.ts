@@ -1,6 +1,5 @@
 import { supabase, IS_MOCK_MODE } from '@/lib/supabase';
-import { MOCK_USER_ID, MOCK_PROFILE } from '@/lib/mockData';
-import { Profile } from '@/types';
+import { MOCK_USER_ID } from '@/lib/mockData';
 
 export interface AuthCredentials {
   email: string;
@@ -14,9 +13,9 @@ export interface AuthResult {
 }
 
 export const authService = {
-  async signUp({ email, password, fullName }: AuthCredentials): Promise<AuthResult> {
+  async signUp({ email, password, fullName }: AuthCredentials): Promise<AuthResult & { requiresEmailConfirmation: boolean }> {
     if (IS_MOCK_MODE) {
-      return { userId: MOCK_USER_ID, email };
+      return { userId: MOCK_USER_ID, email, requiresEmailConfirmation: false };
     }
 
     const { data, error } = await supabase!.auth.signUp({
@@ -28,7 +27,7 @@ export const authService = {
     if (error) throw error;
     if (!data.user) throw new Error('Registration failed');
 
-    return { userId: data.user.id, email: data.user.email! };
+    return { userId: data.user.id, email: data.user.email!, requiresEmailConfirmation: !data.session };
   },
 
   async signIn({ email, password }: AuthCredentials): Promise<AuthResult> {

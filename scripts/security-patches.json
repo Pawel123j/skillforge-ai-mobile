@@ -1,0 +1,17 @@
+{
+  "braces": {
+    "version": "3.0.3",
+    "file": "lib/parse.js",
+    "sha256": "0d010535667c2889449adcc0cf596c2db2c61f73c513b96c4a2cf1fd8ad1e018"
+  },
+  "node-forge": {
+    "version": "1.4.0",
+    "file": "lib/rsa.js",
+    "sha256": "96c154db17c611f81eeb48aed2c064c80d87517df2fff24cf574fbd1ac050492"
+  },
+  "sprintf-js": {
+    "version": "1.1.3",
+    "file": "src/sprintf.js",
+    "sha256": "a81cd7f8107e13277ec6a56529e604d7db92843e34733e2864863a3d3cc18312"
+  }
+}

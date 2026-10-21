@@ -41,7 +41,7 @@ export default function TasksScreen() {
 
   useEffect(() => {
     if (userId) loadTasks(userId);
-  }, [userId]);
+  }, [userId, loadTasks]);
 
   const filteredTasks = tasks.filter((t) =>
     filter === 'all' ? true : t.status === filter

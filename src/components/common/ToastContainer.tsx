@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
-import { ToastItem, ToastConfig } from './ToastItem';
+import { ToastItem } from './ToastItem';
 import { useToastStore } from '@/stores/toastStore';
 
 export function ToastContainer() {

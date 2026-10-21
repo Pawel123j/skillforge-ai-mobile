@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,6 @@ import { useProjectStore } from '@/stores/projectStore';
 import { generateAllInsights } from '@/services/mentorService';
 import { MentorInsightCard } from '@/components/cards/MentorInsightCard';
 import { LoadingState } from '@/components/common/LoadingState';
-import { MentorInsight } from '@/types';
 import { getXpLevel } from '@/utils';
 
 export default function MentorScreen() {
@@ -23,29 +22,27 @@ export default function MentorScreen() {
   const { tasks, loadTasks } = useTaskStore();
   const { projects, loadProjects } = useProjectStore();
 
-  const [insights, setInsights] = useState<MentorInsight[]>([]);
+  const insights = useMemo(() => profile && progress
+    ? generateAllInsights(profile, progress, tasks, projects)
+    : [], [profile, progress, tasks, projects]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadInsights = async () => {
-    if (!profile || !progress) return;
-
-    if (userId && tasks.length === 0) {
-      await loadTasks(userId);
+  const goal = profile?.learning_goal;
+  const loadInsights = useCallback(async () => {
+    try {
+      if (userId) {
+        await Promise.all([loadTasks(userId), loadProjects(userId, goal ?? null)]);
+      }
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
-    if (userId && projects.length === 0) {
-      await loadProjects(userId, profile.learning_goal);
-    }
-
-    const generated = generateAllInsights(profile, progress, tasks, projects);
-    setInsights(generated);
-    setIsLoading(false);
-    setIsRefreshing(false);
-  };
+  }, [userId, goal, loadTasks, loadProjects]);
 
   useEffect(() => {
     loadInsights();
-  }, [profile, progress]);
+  }, [loadInsights]);
 
   const onRefresh = async () => {
     setIsRefreshing(true);

@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Animated,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,14 +16,18 @@ import { progressService } from '@/services/progressService';
 import { Button } from '@/components/common/Button';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { QuizQuestion } from '@/types';
-import { QUIZ_PASS_THRESHOLD } from '@/constants';
-import { GoalColors } from '@/constants';
+import { QUIZ_PASS_THRESHOLD, GoalColors } from '@/constants';
 
 type QuizState = 'question' | 'result';
 
 export default function QuizScreen() {
   const { moduleId } = useLocalSearchParams<{ moduleId: string }>();
+  return <QuizContent key={moduleId} moduleId={moduleId} />;
+}
+
+function QuizContent({ moduleId }: { moduleId: string }) {
   const { colors } = useThemeStore();
   const { showXP, showAchievement } = useToastStore();
   const { userId, progress, profile, updateProgress } = useAuthStore();
@@ -42,18 +45,13 @@ export default function QuizScreen() {
   const goalColor = profile?.learning_goal ? GoalColors[profile.learning_goal] : colors.primary;
 
   useEffect(() => {
-    if (!moduleId) return;
-    loadQuestions();
+    let active = true;
+    quizService.getQuestionsForModule(moduleId).then(
+      (data) => { if (active) setQuestions(data); },
+      () => { if (active) setQuestions([]); }
+    ).finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
   }, [moduleId]);
-
-  const loadQuestions = async () => {
-    try {
-      const data = await quizService.getQuestionsForModule(moduleId!);
-      setQuestions(data);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSelectAnswer = (index: number) => {
     if (selectedAnswer !== null) return; // Already answered
@@ -95,6 +93,7 @@ export default function QuizScreen() {
   };
 
   if (isLoading) return <LoadingState message="Loading quiz..." fullScreen />;
+  if (!questions.length) return <ErrorState message="Quiz unavailable. Go back and choose another module." />;
 
   const currentQuestion = questions[currentIndex];
   const progressPct = ((currentIndex + (selectedAnswer !== null ? 1 : 0)) / questions.length) * 100;

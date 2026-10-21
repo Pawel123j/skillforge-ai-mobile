@@ -335,7 +335,7 @@ eas submit --platform android
 
 ## 🏆 Portfolio Description
 
-**SkillForge AI** is a production-quality mobile application demonstrating:
+**SkillForge AI** is a mobile demo with an optional Supabase backend, demonstrating:
 
 - **Full-stack mobile architecture** — Expo + React Native + TypeScript + Supabase
 - **Authentication flows** — Registration, login, session persistence, route guards
@@ -343,7 +343,7 @@ eas submit --platform android
 - **Form validation** — React Hook Form + Zod schemas
 - **Clean service layer** — Separation of concerns between UI and business logic
 - **Database design** — Relational schema with RLS security policies
-- **Mock/real data strategy** — Graceful fallback when backend is unavailable
+- **Mock/real data strategy** — Demo mode when Supabase configuration is absent; configured backend failures are not silently replaced with mock data
 - **Rule-based AI system** — Extensible mentor engine with OpenAI-ready architecture
 - **Dark/light theming** — System-level theme with persistent user preference
 - **Mobile UX patterns** — Pull-to-refresh, modals, tab navigation, loading states
@@ -359,3 +359,77 @@ MIT License — free to use, modify, and distribute.
 ---
 
 Built with ⚡ by [SkillForge AI](https://github.com/pawel123j/skillforge-ai-mobile)
+
+## Verified development checks
+
+Use Node 22 and `npm ci`, then run:
+
+```bash
+npm run lint -- --max-warnings 0
+npm run type-check
+npm test
+CI=1 EXPO_OFFLINE=1 npx expo export --platform web
+```
+
+ESLint 8 uses the Expo configuration in `.eslintrc.cjs`. CI runs all four
+checks. The Jest/Expo screen regressions exercise missing lessons, empty and
+failed quizzes, progress changes without remounting, backend module metadata,
+and failed onboarding. They use controlled service responses, not a live
+Supabase deployment. Browser validation also exercised task creation/editing
+and the missing-lesson screen at a mobile viewport.
+
+Without Supabase settings, task/project/progress data is a session-only demo
+and resets on reload. Theme preferences are persisted. Supabase authentication,
+RLS, offline behavior and Android/iOS release builds still require validation
+against a configured backend and devices. These checks do not establish
+production readiness. The mentor uses rules, not a deployed language model.
+
+
+### Testy przeglądarkowe
+
+Po zainstalowaniu zależności aplikacji i zbudowaniu frontendu zgodnie z README / workflow `browser.yml` (lub jobem browser w `ci.yml`):
+
+```bash
+python -m venv .venv-e2e
+# Aktywuj ten venv przed dalszymi poleceniami.
+python -m pip install -r e2e/requirements.txt
+python -m playwright install chromium
+python -m pytest -q e2e
+```
+
+Na Linux może być potrzebne `python -m playwright install --with-deps chromium` z uprawnieniami administratora. Alternatywnie `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` wskazuje istniejący Chromium. Testy uruchamiają i zatrzymują własny serwer, używają nowego kontekstu przeglądarki i zapisują logi w ignorowanym `e2e/artifacts/`. Pełny backend musi mieć zainstalowane swoje zależności; `E2E_API_PYTHON` jest opcjonalnym wyborem jego interpretera w AutoDesk/BankGuard. Testy nie uruchamiają wdrożenia.
+
+
+## Zależności i ograniczenia bezpieczeństwa (2026-10-17)
+
+Po aktualizacji zależności wymuszono jedną wersję React Native/React przez `overrides` zgodne z wersjami głównymi aplikacji, a renderer testów przypięto do React 18.2.0. Zapobiega to zainstalowaniu RN 0.88 jako zagnieżdżonego peer dependency w projekcie RN 0.74.5. Czyste `npm ci`, lint bez ostrzeżeń, typy, 7 regresji ekranów, eksport i browser E2E zostały sprawdzone po tej zmianie.
+
+## Walidacja etapu 2 — 2026-10-18
+
+`tar` jest przypięty do 7.5.22. Wersjonowana poprawka `patches/@expo+cli+0.18.31.patch` dostosowuje oba importy CLI do API tar 7; samo podbicie wersji łamało ekstrakcję. `npm ci` stosuje patch automatycznie. `npm run test:toolchain` sprawdza 4 przypadki: ekstrakcję szablonu, fallback bez systemowego tar, gałąź win32 i odrzucenie wyjścia poza katalog. Gałąź win32 jest symulowana, nie jest testem systemu Windows.
+
+Rejestracja respektuje profil tworzony przez trigger, nie wykonuje powtórnego INSERT i pokazuje stan wymagający potwierdzenia e-mail, jeśli Supabase nie zwróci sesji. Błędy odczytu profilu/progresu nie uruchamiają inicjalizacji danych. Trigger ma pusty `search_path`; istniejące bazy aktualizuje `supabase/migrations/20261018_function_search_path.sql`. Seed quizu jest powtarzalny bez tworzenia nowych duplikatów; nie usuwa starych danych.
+
+Testy RLS: zainstaluj `supabase/tests/requirements.txt`, ustaw SKILLFORGE_TEST_ADMIN_URL na **izolowany** PostgreSQL z CREATEDB, uruchom `python -m pytest -q supabase/tests`. Powstaje własna baza UUID. 25 testów sprawdza faktyczne polityki PostgreSQL dla dwóch użytkowników i anonima, cudze odczyty/zapisy, triggery i seed. Lokalny kontrakt auth.uid() nie zastępuje walidacji hostowanego Supabase Auth/PostgREST.
+
+Czyste npm ci, lint/typy, 14 Jest, 4 toolchain, 25 RLS, eksport web i 1 E2E PASS. Krytyczny tar usunięty; audyt nadal wykazuje 70 high, 29 moderate i 1 low w starym SDK (0 critical). Android/iOS i pełna integracja hostowana pozostają niezweryfikowane. Projekt pozostaje PARTIAL.
+
+### Etap 3 — migracja SDK (2026-10-19)
+
+Aplikacja używa Expo 58.0.14 / React Native 0.88.0 / React 19.3.0 zgodnie z
+oficjalną macierzą SDK. `npm ci`, lint, typy, 16 testów aplikacji, eksport web
+oraz bundlowanie JS/Hermes dla Android/iOS przeszły lokalnie. Te ostatnie nie
+są buildami APK/IPA ani testami urządzeń. Testy zmiany lekcji/modułu chronią
+przed pozostawieniem poprzedniego stanu po nawigacji.
+
+[SECURITY_PATCH.md](SECURITY_PATCH.md) opisuje trzy ograniczone poprawki i bramkę
+`npm run security:check`. Bieżący surowy audit: **58 high, 18 moderate, 0 critical**;
+wszystkie bezpośrednie advisories dotyczą wskazanych lokalnych poprawek. Nie jest
+to audit zerowy. Dawna poprawka importów SDK 51 została usunięta po czterech
+regresjach ekstraktora SDK 58. Pozostały patch-package stosuje nowe poprawki.
+
+[Supabase integration](supabase/tests/README.md) opisuje rzeczywisty lokalny
+Auth/PostgREST oraz RLS. Bieżące E2E web wymagają poprawnie działającego sandboxa
+Chromium; uruchomienie w tej chmurze zostało zablokowane przed startem aplikacji
+przez niewłaściwego właściciela pomocnika SUID. Sandbox pozostaje włączony.
+Android/iOS release i urządzenia nadal pozostają do walidacji. Status: PARTIAL.

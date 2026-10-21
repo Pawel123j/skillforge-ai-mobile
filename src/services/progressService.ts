@@ -11,9 +11,10 @@ export const progressService = {
       .from('user_progress')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error || !data) {
+    if (error) throw error;
+    if (!data) {
       // Initialize progress for new user
       return progressService.initProgress(userId);
     }

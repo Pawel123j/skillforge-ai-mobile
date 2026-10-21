@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { Text, StyleSheet, Platform } from 'react-native';
 import { useThemeStore } from '@/stores/themeStore';
 
-function TabIcon({ icon, label, focused, color }: { icon: string; label: string; focused: boolean; color: string }) {
+function TabIcon({ icon, focused }: { icon: string; focused: boolean }) {
   return (
     <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>{icon}</Text>
   );
@@ -36,8 +36,8 @@ export default function TabLayout() {
         name="dashboard"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon="🏠" label="Dashboard" focused={focused} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon="🏠" focused={focused} />
           ),
         }}
       />
@@ -45,8 +45,8 @@ export default function TabLayout() {
         name="roadmap"
         options={{
           title: 'Roadmap',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon="🗺️" label="Roadmap" focused={focused} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon="🗺️" focused={focused} />
           ),
         }}
       />
@@ -54,8 +54,8 @@ export default function TabLayout() {
         name="tasks"
         options={{
           title: 'Tasks',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon="✅" label="Tasks" focused={focused} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon="✅" focused={focused} />
           ),
         }}
       />
@@ -63,8 +63,8 @@ export default function TabLayout() {
         name="projects"
         options={{
           title: 'Projects',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon="🚀" label="Projects" focused={focused} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon="🚀" focused={focused} />
           ),
         }}
       />
@@ -72,8 +72,8 @@ export default function TabLayout() {
         name="mentor"
         options={{
           title: 'Mentor',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon="🧠" label="Mentor" focused={focused} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon="🧠" focused={focused} />
           ),
         }}
       />
@@ -81,8 +81,8 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ focused, color }) => (
-            <TabIcon icon="👤" label="Profile" focused={focused} color={color} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon icon="👤" focused={focused} />
           ),
         }}
       />

@@ -7,7 +7,6 @@ export function generateMentorInsight(
   tasks: Task[],
   projects: Project[]
 ): MentorInsight {
-  const today = new Date().toISOString().split('T')[0];
   const lastActivity = progress.last_activity_date;
   const daysSinceActivity = lastActivity
     ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000)
@@ -150,7 +149,6 @@ export function generateAllInsights(
   projects: Project[]
 ): MentorInsight[] {
   const insights: MentorInsight[] = [];
-  const today = new Date().toISOString().split('T')[0];
   const lastActivity = progress.last_activity_date;
   const daysSinceActivity = lastActivity
     ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000)

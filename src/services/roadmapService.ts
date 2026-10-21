@@ -3,6 +3,15 @@ import { MOCK_LEARNING_PATHS, MOCK_MODULES, MOCK_LESSONS } from '@/lib/mockData'
 import { LearningPath, Module, Lesson, LearningGoal, ModuleWithProgress, LessonWithProgress } from '@/types';
 
 export const roadmapService = {
+  async getModuleById(moduleId: string): Promise<Module | null> {
+    if (IS_MOCK_MODE) {
+      return Object.values(MOCK_MODULES).flat().find((module) => module.id === moduleId) ?? null;
+    }
+    const { data, error } = await supabase!.from('modules').select('*').eq('id', moduleId).maybeSingle();
+    if (error) throw error;
+    return data as Module | null;
+  },
+
   async getLearningPaths(): Promise<LearningPath[]> {
     if (IS_MOCK_MODE) return MOCK_LEARNING_PATHS;
 

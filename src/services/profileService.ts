@@ -16,9 +16,9 @@ export const profileService = {
       .from('profiles')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error) return null;
+    if (error) throw error;
     return data as Profile;
   },
 

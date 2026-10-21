@@ -1,0 +1,14 @@
+diff --git a/node_modules/sprintf-js/src/sprintf.js b/node_modules/sprintf-js/src/sprintf.js
+--- a/node_modules/sprintf-js/src/sprintf.js
++++ b/node_modules/sprintf-js/src/sprintf.js
+@@ -38,6 +38,10 @@
+             }
+             else if (typeof parse_tree[i] === 'object') {
+                 ph = parse_tree[i] // convenience purposes only
++                // Bound both width and precision before formatting/allocation.
++                if (Number(ph.width) > 65536 || Number(ph.precision) > 65536) {
++                    throw new RangeError('[sprintf] format limit exceeded (65536)')
++                }
+                 if (ph.keys) { // keyword argument
+                     arg = argv[cursor]
+                     for (k = 0; k < ph.keys.length; k++) {

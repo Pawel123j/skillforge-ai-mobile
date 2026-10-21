@@ -40,7 +40,7 @@ export default function LoginScreen() {
     try {
       await signIn(values.email, values.password);
       router.replace('/(tabs)/dashboard');
-    } catch (err: any) {
+    } catch {
       setError('email', { message: 'Invalid email or password' });
     }
   };
@@ -120,7 +120,7 @@ export default function LoginScreen() {
 
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
           </Text>
           <TouchableOpacity onPress={() => router.push('/auth/register')}>
             <Text style={[styles.link, { color: colors.primary }]}>Create Account</Text>
