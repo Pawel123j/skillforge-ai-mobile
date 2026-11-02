@@ -31,7 +31,7 @@ const FILTERS: { value: FilterOption; label: string }[] = [
 export default function ProjectsScreen() {
   const { colors } = useThemeStore();
   const { userId, profile } = useAuthStore();
-  const { projects, isLoading, loadProjects, createProject, updateProject, setProjectStatus } = useProjectStore();
+  const { projects, error, clearError, pendingStatus, isLoading, loadProjects, createProject, updateProject, setProjectStatus } = useProjectStore();
 
   const [filter, setFilter] = useState<FilterOption>('all');
   const [showForm, setShowForm] = useState(false);
@@ -59,6 +59,8 @@ export default function ProjectsScreen() {
     try {
       await createProject(userId, data);
       setShowForm(false);
+    } catch {
+      // Store keeps the error; preserve the entered form so the user can retry.
     } finally {
       setIsFormLoading(false);
     }
@@ -70,6 +72,8 @@ export default function ProjectsScreen() {
     try {
       await updateProject(editingProject.id, data);
       setEditingProject(null);
+    } catch {
+      // Store keeps the error; preserve the entered form so the user can retry.
     } finally {
       setIsFormLoading(false);
     }
@@ -97,6 +101,17 @@ export default function ProjectsScreen() {
         />
       </View>
 
+      {error && (
+        <View accessibilityRole="alert" style={{ padding: 16 }}>
+          <Text style={{ color: colors.error }}>Could not save or load changes: {error}</Text>
+          <Button title="Dismiss" variant="ghost" onPress={clearError} />
+          <Text style={{ color: colors.textSecondary }}>Your last saved status is restored. Retry the action, or pull to refresh.</Text>
+        </View>
+      )}
+      {Object.keys(pendingStatus).length > 0 && (
+        <Text accessibilityLiveRegion="polite" style={{ paddingHorizontal: 20, color: colors.textSecondary }}>Saving changes…</Text>
+      )}
+
       {/* Stats Row */}
       <View style={styles.statsRow}>
         {[
@@ -117,6 +132,7 @@ export default function ProjectsScreen() {
       {/* Filters */}
       <ScrollView
         horizontal
+        style={{ flexGrow: 0 }}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filtersContainer}
       >
@@ -125,6 +141,8 @@ export default function ProjectsScreen() {
           return (
             <TouchableOpacity
               key={f.value}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
               style={[
                 styles.filterBtn,
                 {
@@ -177,6 +195,7 @@ export default function ProjectsScreen() {
               <ProjectCard
                 key={project.id}
                 project={project}
+                busy={!!pendingStatus[project.id]}
                 onPress={() => setEditingProject(project)}
                 onStatusChange={(status: ProjectStatus) => setProjectStatus(project.id, status)}
               />
@@ -202,6 +221,9 @@ export default function ProjectsScreen() {
               {editingProject ? 'Edit Project' : 'Add Project'}
             </Text>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Close form"
+              style={{ minHeight: 48, minWidth: 48, alignItems: 'center', justifyContent: 'center' }}
               onPress={() => {
                 setShowForm(false);
                 setEditingProject(null);
@@ -210,6 +232,7 @@ export default function ProjectsScreen() {
               <Text style={[styles.modalClose, { color: colors.textSecondary }]}>✕</Text>
             </TouchableOpacity>
           </View>
+          {error && <Text accessibilityRole="alert" style={{ paddingHorizontal: 24, color: colors.error }}>Not saved: {error}. Your entries are kept; try again.</Text>}
           <ScrollView
             style={styles.modalContent}
             keyboardShouldPersistTaps="handled"
@@ -270,6 +293,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   filterBtn: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,

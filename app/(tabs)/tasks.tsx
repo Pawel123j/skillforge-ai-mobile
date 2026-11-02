@@ -31,7 +31,7 @@ const FILTERS: { value: FilterOption; label: string }[] = [
 export default function TasksScreen() {
   const { colors } = useThemeStore();
   const { userId } = useAuthStore();
-  const { tasks, isLoading, loadTasks, createTask, updateTask, deleteTask, setTaskStatus } = useTaskStore();
+  const { tasks, error, clearError, pendingStatus, isLoading, loadTasks, createTask, updateTask, deleteTask, setTaskStatus } = useTaskStore();
 
   const [filter, setFilter] = useState<FilterOption>('all');
   const [showForm, setShowForm] = useState(false);
@@ -59,6 +59,8 @@ export default function TasksScreen() {
     try {
       await createTask(userId, data);
       setShowForm(false);
+    } catch {
+      // Store keeps the error; preserve the entered form so the user can retry.
     } finally {
       setIsFormLoading(false);
     }
@@ -70,13 +72,15 @@ export default function TasksScreen() {
     try {
       await updateTask(editingTask.id, data);
       setEditingTask(null);
+    } catch {
+      // Store keeps the error; preserve the entered form so the user can retry.
     } finally {
       setIsFormLoading(false);
     }
   };
 
   const handleDelete = (taskId: string) => {
-    deleteTask(taskId);
+    void deleteTask(taskId).catch(() => { /* Error is rendered below. */ });
   };
 
   const taskCounts = {
@@ -101,9 +105,21 @@ export default function TasksScreen() {
         />
       </View>
 
+      {error && (
+        <View accessibilityRole="alert" style={{ padding: 16 }}>
+          <Text style={{ color: colors.error }}>Could not save or load changes: {error}</Text>
+          <Button title="Dismiss" variant="ghost" onPress={clearError} />
+          <Text style={{ color: colors.textSecondary }}>Your last saved status is restored. Retry the action, or pull to refresh.</Text>
+        </View>
+      )}
+      {Object.keys(pendingStatus).length > 0 && (
+        <Text accessibilityLiveRegion="polite" style={{ paddingHorizontal: 20, color: colors.textSecondary }}>Saving changes…</Text>
+      )}
+
       {/* Filters */}
       <ScrollView
         horizontal
+        style={{ flexGrow: 0 }}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filtersContainer}
       >
@@ -112,6 +128,8 @@ export default function TasksScreen() {
           return (
             <TouchableOpacity
               key={f.value}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
               style={[
                 styles.filterBtn,
                 {
@@ -168,6 +186,7 @@ export default function TasksScreen() {
               <TaskCard
                 key={task.id}
                 task={task}
+                busy={!!pendingStatus[task.id]}
                 onPress={() => setEditingTask(task)}
                 onStatusChange={(status) => setTaskStatus(task.id, status)}
                 onDelete={() => handleDelete(task.id)}
@@ -194,6 +213,9 @@ export default function TasksScreen() {
               {editingTask ? 'Edit Task' : 'New Task'}
             </Text>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Close form"
+              style={{ minHeight: 48, minWidth: 48, alignItems: 'center', justifyContent: 'center' }}
               onPress={() => {
                 setShowForm(false);
                 setEditingTask(null);
@@ -202,6 +224,7 @@ export default function TasksScreen() {
               <Text style={[styles.modalClose, { color: colors.textSecondary }]}>✕</Text>
             </TouchableOpacity>
           </View>
+          {error && <Text accessibilityRole="alert" style={{ paddingHorizontal: 24, color: colors.error }}>Not saved: {error}. Your entries are kept; try again.</Text>}
           <ScrollView
             style={styles.modalContent}
             keyboardShouldPersistTaps="handled"
@@ -248,6 +271,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   filterBtn: {
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
