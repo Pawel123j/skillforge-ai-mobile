@@ -1,6 +1,6 @@
 # ⚡ SkillForge AI — Mobile Learning Roadmap Assistant
 
-> An AI-powered mobile app that helps aspiring developers follow structured learning roadmaps, complete tasks, build portfolio projects, and track their progress — all with a built-in mentor engine.
+> A mobile learning planner with structured roadmaps, tasks, portfolio projects and a rule-based mentor. The mentor uses local rules; no language model service is connected.
 
 ---
 
@@ -12,7 +12,7 @@ SkillForge AI guides you from zero to job-ready developer through:
 - **Module quizzes** with XP rewards
 - **Task management** to stay organized
 - **Portfolio project suggestions** to impress recruiters
-- **AI Mentor insights** based on your activity patterns
+- **Rule-based mentor suggestions** based on your activity patterns; no AI service is connected
 
 ---
 
@@ -28,7 +28,7 @@ SkillForge AI guides you from zero to job-ready developer through:
 | 📝 **Quizzes** | Multiple-choice quizzes per module with scoring |
 | ✅ **Tasks** | Full CRUD task manager with status and due dates |
 | 🚀 **Projects** | Suggested + custom portfolio projects with GitHub links |
-| 🧠 **AI Mentor** | Rule-based insight engine (OpenAI-ready architecture) |
+| 🧭 **Learning Mentor** | Local rule-based suggestions from study activity |
 | 👤 **Profile** | Edit name, change goal/time, toggle dark/light theme |
 
 ---
@@ -50,14 +50,15 @@ SkillForge AI guides you from zero to job-ready developer through:
 
 | Layer | Technology |
 |-------|-----------|
-| **Framework** | Expo 51 + React Native 0.74 |
-| **Language** | TypeScript 5.3 |
-| **Navigation** | Expo Router 3 (file-based) |
+| **Framework** | Expo SDK 58.0.14 + React Native 0.88.0 + React 19.3.0 |
+| **Language** | TypeScript 5.9 |
+| **Navigation** | Expo Router (file-based) |
 | **Backend / DB** | Supabase (Auth + PostgreSQL) |
 | **State Management** | Zustand 4 |
 | **Forms** | React Hook Form + Zod validation |
 | **UI** | Custom component library (dark/light) |
-| **Storage** | AsyncStorage (session persistence) |
+| **Native session storage** | Expo SecureStore (Keychain/Keystore), with one-time migration from AsyncStorage |
+| **Web session storage** | Browser local storage via AsyncStorage |
 
 ---
 
@@ -123,17 +124,15 @@ skillforge-ai-mobile/
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
-- Expo CLI (`npm install -g expo-cli`)
-- Expo Go app on your phone (for testing)
+- Node.js 22.13+ or 24.3+ (see `package.json`)
+- npm (the Expo CLI is run through `npx`)
 
 ### 1. Clone and Install
 
 ```bash
 git clone https://github.com/pawel123j/skillforge-ai-mobile.git
 cd skillforge-ai-mobile
-npm install
+npm ci
 ```
 
 ### 2. Environment Variables (Optional)
@@ -156,9 +155,9 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 npx expo start
 ```
 
-- Press `i` to open iOS simulator
-- Press `a` to open Android emulator
-- Scan QR code with Expo Go for physical device
+- Press `i` to open an installed iOS simulator
+- Press `a` to open an installed Android emulator
+- A physical device requires a compatible development build; native support has not been verified on a device in this repository session.
 
 ---
 
@@ -231,7 +230,7 @@ If Supabase credentials are not configured, the app automatically runs in **Demo
 
 ---
 
-## 🧠 AI Mentor Engine
+## 🧭 Learning mentor rules
 
 The mentor screen uses a **rule-based engine** that analyzes:
 - Days since last activity → inactivity warnings
@@ -240,12 +239,11 @@ The mentor screen uses a **rule-based engine** that analyzes:
 - Pending task count → focus reminders
 - XP milestones → achievement messages
 
-The service layer is designed to be **drop-in replaced** with OpenAI API:
+No language model or remote AI service is connected. A future service could replace the local rules, but the current product does not make AI-generated recommendations:
 
 ```typescript
 // src/services/mentorService.ts
-// Replace generateMentorInsight() with an OpenAI chat completion call
-// The function signature and return types stay the same
+// A future integration would require a separate product and privacy review.
 ```
 
 ---
@@ -344,11 +342,11 @@ eas submit --platform android
 - **Clean service layer** — Separation of concerns between UI and business logic
 - **Database design** — Relational schema with RLS security policies
 - **Mock/real data strategy** — Demo mode when Supabase configuration is absent; configured backend failures are not silently replaced with mock data
-- **Rule-based AI system** — Extensible mentor engine with OpenAI-ready architecture
+- **Rule-based mentor** — Local recommendations with no connected AI service
 - **Dark/light theming** — System-level theme with persistent user preference
 - **Mobile UX patterns** — Pull-to-refresh, modals, tab navigation, loading states
 
-This project is ready to present in technical interviews and demonstrates real-world patterns used in production mobile applications.
+This portfolio demo demonstrates common mobile patterns. It is not a production service.
 
 ---
 
@@ -362,7 +360,7 @@ Built with ⚡ by [SkillForge AI](https://github.com/pawel123j/skillforge-ai-mob
 
 ## Verified development checks
 
-Use Node 22 and `npm ci`, then run:
+Use a Node version supported by `package.json` and `npm ci`, then run:
 
 ```bash
 npm run lint -- --max-warnings 0
@@ -433,3 +431,7 @@ Auth/PostgREST oraz RLS. Bieżące E2E web wymagają poprawnie działającego sa
 Chromium; uruchomienie w tej chmurze zostało zablokowane przed startem aplikacji
 przez niewłaściwego właściciela pomocnika SUID. Sandbox pozostaje włączony.
 Android/iOS release i urządzenia nadal pozostają do walidacji. Status: PARTIAL.
+
+## Walidacja w tym środowisku — 2026-11-02
+
+Lint bez ostrzeżeń, TypeScript, wszystkie 26 testów Jest w 4 zestawach oraz statyczny eksport web (21 tras) przeszły. E2E w Chromium nie uruchomiło aplikacji: systemowy pomocnik `chrome-sandbox` nie ma właściciela root; nie wyłączano sandboxa. W tej sesji nie wykonano testu urządzenia.

@@ -7,6 +7,7 @@ import { getTaskStatusColor, getTaskStatusLabel, formatRelativeDate, isOverdue }
 
 interface TaskCardProps {
   task: Task;
+  busy?: boolean;
   onPress: () => void;
   onStatusChange: (status: TaskStatus) => void;
   onDelete: () => void;
@@ -18,7 +19,7 @@ const STATUS_CYCLE: Record<TaskStatus, TaskStatus> = {
   done: 'todo',
 };
 
-export function TaskCard({ task, onPress, onStatusChange, onDelete }: TaskCardProps) {
+export function TaskCard({ task, busy = false, onPress, onStatusChange, onDelete }: TaskCardProps) {
   const { colors } = useThemeStore();
   const overdue = isOverdue(task.due_date) && task.status !== 'done';
 
@@ -30,6 +31,10 @@ export function TaskCard({ task, onPress, onStatusChange, onDelete }: TaskCardPr
         task.status === 'done' && styles.done,
       ]}
       onPress={onPress}
+      disabled={busy}
+      accessibilityRole="button"
+      accessibilityLabel={`Edit ${task.title}`}
+      accessibilityState={{ disabled: busy, busy }}
       activeOpacity={0.85}
     >
       <View style={styles.row}>
@@ -40,7 +45,11 @@ export function TaskCard({ task, onPress, onStatusChange, onDelete }: TaskCardPr
             { borderColor: getTaskStatusColor(task.status) },
             task.status === 'done' && { backgroundColor: getTaskStatusColor('done') },
           ]}
-          onPress={() => onStatusChange(STATUS_CYCLE[task.status])}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: busy, busy }}
+          accessibilityLabel={`Change ${task.title} to ${getTaskStatusLabel(STATUS_CYCLE[task.status])}`}
+          onPress={(event) => { event.stopPropagation(); onStatusChange(STATUS_CYCLE[task.status]); }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           {task.status === 'done' && <Text style={styles.checkmark}>✓</Text>}
@@ -85,7 +94,10 @@ export function TaskCard({ task, onPress, onStatusChange, onDelete }: TaskCardPr
 
         <TouchableOpacity
           style={styles.deleteBtn}
-          onPress={onDelete}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete ${task.title}`}
+          onPress={(event) => { event.stopPropagation(); onDelete(); }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           <Text style={[styles.deleteIcon, { color: colors.textMuted }]}>✕</Text>
@@ -108,9 +120,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   statusDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     borderWidth: 2,
     marginRight: 12,
     marginTop: 2,
@@ -146,6 +158,6 @@ const styles = StyleSheet.create({
   },
   module: { fontSize: 12 },
   dueDate: { fontSize: 12 },
-  deleteBtn: { padding: 4 },
+  deleteBtn: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   deleteIcon: { fontSize: 16 },
 });
