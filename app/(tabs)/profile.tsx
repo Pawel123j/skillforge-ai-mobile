@@ -7,11 +7,12 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/stores/themeStore';
-import { useAuthStore } from '@/stores/authStore';
+import { captureSession, useAuthStore } from '@/stores/authStore';
 import { profileService } from '@/services/profileService';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
@@ -28,7 +29,7 @@ const DAILY_TIMES: DailyTime[] = [15, 30, 60, 90];
 
 export default function ProfileScreen() {
   const { colors, theme, toggleTheme } = useThemeStore();
-  const { profile, progress, userId, updateProfile, signOut, isLoading } = useAuthStore();
+  const { profile, progress, userId, updateProfile, signOut, isLoading, error } = useAuthStore();
   const router = useRouter();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -40,12 +41,15 @@ export default function ProfileScreen() {
 
   const handleSaveName = async () => {
     if (!userId || !editName.trim()) return;
+    const currentSession = captureSession();
     setIsSavingName(true);
     try {
       await profileService.updateProfile(userId, { full_name: editName.trim() });
-      updateProfile({ full_name: editName.trim() });
+      if (!currentSession()) return;
+      updateProfile({ full_name: editName.trim() }, userId);
       setIsEditingName(false);
     } catch {
+      if (!currentSession()) return;
       Alert.alert('Error', 'Failed to update name');
     } finally {
       setIsSavingName(false);
@@ -54,40 +58,44 @@ export default function ProfileScreen() {
 
   const handleGoalChange = async (goal: LearningGoal) => {
     if (!userId) return;
+    const currentSession = captureSession();
     try {
       await profileService.updateProfile(userId, { learning_goal: goal });
-      updateProfile({ learning_goal: goal });
+      if (!currentSession()) return;
+      updateProfile({ learning_goal: goal }, userId);
     } catch {
+      if (!currentSession()) return;
       Alert.alert('Error', 'Failed to update goal');
     }
   };
 
   const handleTimeChange = async (time: DailyTime) => {
     if (!userId) return;
+    const currentSession = captureSession();
     try {
       await profileService.updateProfile(userId, { daily_time_minutes: time });
-      updateProfile({ daily_time_minutes: time });
+      if (!currentSession()) return;
+      updateProfile({ daily_time_minutes: time }, userId);
     } catch {
+      if (!currentSession()) return;
       Alert.alert('Error', 'Failed to update time');
     }
   };
 
+  const performLogout = async () => {
+    try {
+      await signOut();
+      router.replace('/auth/login');
+    } catch {
+      // Store error is rendered below; stay on the current screen for retry.
+    }
+  };
   const handleLogout = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            await signOut();
-            router.replace('/auth/login');
-          },
-        },
-      ]
-    );
+    if (Platform.OS === 'web') { void performLogout(); return; }
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign Out', style: 'destructive', onPress: performLogout },
+    ]);
   };
 
   return (
@@ -270,6 +278,7 @@ export default function ProfileScreen() {
 
         {/* Logout */}
         <View style={styles.logoutSection}>
+          {error && <Text accessibilityRole="alert" style={{ color: colors.text }}>{error}</Text>}
           <Button
             title="Sign Out"
             onPress={handleLogout}

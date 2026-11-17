@@ -43,3 +43,23 @@ test('queued sign-out cannot be undone by an earlier refresh', async () => {
   await Promise.all([adapter.setItem('key', 'session'), adapter.removeItem('key')]);
   expect(await adapter.getItem('key')).toBeNull();
 });
+
+test('native string encoding preserves surrogate pairs at chunk boundaries', async () => {
+  const secure = memory(); const legacy = memory();
+  const save = secure.setItem;
+  secure.setItem = (key, value) => save(key, Buffer.from(value, 'utf8').toString('utf8'));
+  const adapter = createNativeSessionStorage(secure, legacy);
+  const session = 'a'.repeat(449) + '😀' + 'b'.repeat(449) + '🚀';
+  await adapter.setItem('unicode', session);
+  expect(await createNativeSessionStorage(secure, legacy).getItem('unicode')).toBe(session);
+});
+
+test('oversized replacement cannot commit an unreadable manifest or discard previous data', async () => {
+  const secure = memory(); const legacy = memory();
+  const adapter = createNativeSessionStorage(secure, legacy);
+  await adapter.setItem('key', 'previous session');
+  const before = new Map(secure.values);
+  await expect(adapter.setItem('key', 'x'.repeat(450001))).rejects.toThrow('secure storage limit');
+  expect(secure.values).toEqual(before);
+  expect(await adapter.getItem('key')).toBe('previous session');
+});

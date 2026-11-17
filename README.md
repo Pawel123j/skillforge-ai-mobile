@@ -1,3 +1,8 @@
+> **Recovery checkpoint — 2026-11-17:** work in progress, not ready to merge.
+> Browser task creation/editing works, but the E2E suite still rejects a React
+> hydration error (#418). See [RECOVERY_STATUS.md](RECOVERY_STATUS.md) for evidence
+> and remaining checks. Older validation notes below are historical.
+
 # ⚡ SkillForge AI — Mobile Learning Roadmap Assistant
 
 > A mobile learning planner with structured roadmaps, tasks, portfolio projects and a rule-based mentor. The mentor uses local rules; no language model service is connected.

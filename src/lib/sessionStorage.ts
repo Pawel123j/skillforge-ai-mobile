@@ -27,11 +27,21 @@ export function createNativeSessionStorage(secure: SessionStorage, legacy: Sessi
   const write = async (key: string, value: string) => {
     const base = prefix(key);
     const old = await readManifest(base);
-    const next = { generation: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`, count: Math.max(1, Math.ceil(value.length / 450)) };
+    const chunks: string[] = [];
+    for (let start = 0; start < value.length;) {
+      let end = Math.min(start + 450, value.length);
+      // Keep surrogate pairs together across the native UTF-8 bridge.
+      if (end < value.length && /[\uD800-\uDBFF]/.test(value[end - 1]) && /[\uDC00-\uDFFF]/.test(value[end])) end--;
+      chunks.push(value.slice(start, end));
+      start = end;
+    }
+    if (!chunks.length) chunks.push('');
+    if (chunks.length > 1000) throw new Error('Session exceeds secure storage limit.');
+    const next = { generation: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`, count: chunks.length };
     // 450 UTF-16 units stay below 1800 UTF-8 bytes for every chunk.
     let committed = false;
     try {
-      for (let i = 0; i < next.count; i++) await secure.setItem(`${base}.${next.generation}.${i}`, value.slice(i * 450, (i + 1) * 450));
+      for (let i = 0; i < next.count; i++) await secure.setItem(`${base}.${next.generation}.${i}`, chunks[i]);
       await secure.setItem(base, JSON.stringify(next));
       committed = true;
       await legacy.removeItem(key);
