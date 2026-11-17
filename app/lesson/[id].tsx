@@ -9,7 +9,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/stores/themeStore';
-import { useAuthStore } from '@/stores/authStore';
+import { captureSession, useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
 import { roadmapService } from '@/services/roadmapService';
 import { progressService } from '@/services/progressService';
@@ -35,6 +35,7 @@ function LessonDetail({ id }: { id: string }) {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const isCompleted = progress?.completed_lessons.includes(id) ?? false;
 
   const goalColor = profile?.learning_goal ? GoalColors[profile.learning_goal] : colors.primary;
@@ -49,11 +50,14 @@ function LessonDetail({ id }: { id: string }) {
   }, [id]);
 
   const handleComplete = async () => {
-    if (!userId || !progress || !lesson || isCompleted) return;
+    if (!userId || !progress || !lesson || isCompleted || isCompleting) return;
 
+    const currentSession = captureSession();
     setIsCompleting(true);
+    setSaveError(null);
     try {
       const updated = await progressService.completeLesson(userId, lesson.id, progress);
+      if (!currentSession()) return;
       updateProgress(updated);
 
       // Fire XP toast
@@ -61,14 +65,16 @@ function LessonDetail({ id }: { id: string }) {
 
       // Streak toast on new day
       if (updated.streak_days > (progress.streak_days)) {
-        setTimeout(() => showStreak(updated.streak_days), 600);
+        showStreak(updated.streak_days);
       }
 
       // Achievement toasts at milestones
       const total = updated.completed_lessons.length;
-      if (total === 1) setTimeout(() => showAchievement('First Lesson Done!', 'Your journey has begun'), 1200);
-      else if (total === 5) setTimeout(() => showAchievement('5 Lessons Completed!', 'You\'re building momentum'), 1200);
-      else if (total === 10) setTimeout(() => showAchievement('10 Lessons!', 'You\'re on a roll 🚀'), 1200);
+      if (total === 1) showAchievement('First Lesson Done!', 'Your journey has begun');
+      else if (total === 5) showAchievement('5 Lessons Completed!', 'You\'re building momentum');
+      else if (total === 10) showAchievement('10 Lessons!', 'You\'re on a roll 🚀');
+    } catch {
+      if (currentSession()) setSaveError('Could not save lesson progress. Please try again.');
     } finally {
       setIsCompleting(false);
     }
@@ -193,7 +199,7 @@ function LessonDetail({ id }: { id: string }) {
             </View>
           ) : (
             <Button
-              title="Mark as Completed ✓"
+              title={saveError ? "Retry saving lesson" : "Mark as Completed ✓"}
               onPress={handleComplete}
               loading={isCompleting}
               fullWidth
@@ -203,6 +209,7 @@ function LessonDetail({ id }: { id: string }) {
           )}
         </View>
 
+        {saveError && <Text accessibilityRole="alert" style={{ color: colors.text }}>{saveError}</Text>}
         <View style={styles.bottomPad} />
       </ScrollView>
     </SafeAreaView>

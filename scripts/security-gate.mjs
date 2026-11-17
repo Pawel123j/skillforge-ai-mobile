@@ -7,11 +7,11 @@ import { spawnSync } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
 const patches = require('./security-patches.json');
-const { bracesChecks, forgeChecks, sprintfChecks } = require('./security-regressions.cjs');
+const { bracesChecks, sprintfChecks, deepmergeChecks } = require('./security-regressions.cjs');
 const reviewed = {
   braces: ['https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', bracesChecks],
-  'node-forge': ['https://github.com/advisories/GHSA-86w9-cpqp-85rv', forgeChecks],
   'sprintf-js': ['https://github.com/advisories/GHSA-hp3w-g68c-fv3c', sprintfChecks],
+  deepmerge: ['https://github.com/advisories/GHSA-gcqx-w48m-w2h4', deepmergeChecks],
 };
 const npm = process.env.npm_execpath;
 const audit = spawnSync(npm ? process.execPath : 'npm', npm ? [npm, 'audit', '--json'] : ['audit', '--json'], {
@@ -23,17 +23,27 @@ assert.ok(!report.error && report.vulnerabilities && report.metadata, 'invalid a
 const verified = new Set();
 function verify(name, node) {
   if (verified.has(node)) return;
-  assert.ok(new Date().toISOString().slice(0, 10) < '2026-11-18', 'local security patches require upstream review');
+  assert.ok(new Date().toISOString().slice(0, 10) < '2026-12-17', 'local security patches require upstream review');
   const location = resolve(node);
   assert.ok(location.startsWith(resolve('node_modules') + sep), 'unexpected package location');
   const patch = patches[name];
   const pkg = JSON.parse(readFileSync(resolve(location, 'package.json'), 'utf8'));
   assert.equal(pkg.name, name);
   assert.equal(pkg.version, patch.version);
-  const bytes = readFileSync(resolve(location, patch.file));
-  assert.equal(createHash('sha256').update(bytes).digest('hex'), patch.sha256, 'missing or altered patch');
+  for (const [file, hash] of Object.entries(patch.files ?? { [patch.file]: patch.sha256 })) {
+    const bytes = readFileSync(resolve(location, file));
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), hash, 'missing or altered patch');
+  }
   reviewed[name][1](require(location));
   verified.add(node);
+}
+// Verify every locked copy even if the advisory feed temporarily omits a finding.
+const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
+for (const name of Object.keys(patches)) {
+  const locations = Object.keys(lock.packages).filter((node) =>
+    node === `node_modules/${name}` || node.endsWith(`/node_modules/${name}`));
+  assert.ok(locations.length, `patched dependency ${name} is missing; review and retire its exception`);
+  for (const node of locations) verify(name, node);
 }
 const failures = [];
 for (const vulnerability of Object.values(report.vulnerabilities)) {

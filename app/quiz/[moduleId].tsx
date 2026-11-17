@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/stores/themeStore';
 import { useToastStore } from '@/stores/toastStore';
-import { useAuthStore } from '@/stores/authStore';
+import { captureSession, useAuthStore } from '@/stores/authStore';
 import { quizService } from '@/services/quizService';
 import { progressService } from '@/services/progressService';
 import { Button } from '@/components/common/Button';
@@ -41,6 +41,9 @@ function QuizContent({ moduleId }: { moduleId: string }) {
   const [state, setState] = useState<QuizState>('question');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const resultSaved = useRef(false);
+  const saving = useRef(false);
 
   const goalColor = profile?.learning_goal ? GoalColors[profile.learning_goal] : colors.primary;
 
@@ -68,26 +71,41 @@ function QuizContent({ moduleId }: { moduleId: string }) {
   };
 
   const handleNext = async () => {
+    if (saving.current) return;
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((i) => i + 1);
       setSelectedAnswer(null);
       setAnsweredCorrectly(null);
     } else {
       // Quiz complete
+      if (!userId || !progress) return;
+      const currentSession = captureSession();
+      saving.current = true;
       setIsSaving(true);
+      setSaveError(null);
       try {
-        await quizService.saveResult(userId!, moduleId!, score, questions.length);
+        if (!resultSaved.current) {
+          await quizService.saveResult(userId, moduleId, score, questions.length);
+          if (!currentSession()) return;
+          resultSaved.current = true;
+        }
 
         const passed = score / questions.length >= QUIZ_PASS_THRESHOLD;
         if (passed && progress) {
-          const updated = await progressService.completeModule(userId!, moduleId!, progress);
+          const updated = await progressService.completeModule(userId, moduleId, progress);
+          if (!currentSession()) return;
           updateProgress(updated);
-          showXP(100);
-          setTimeout(() => showAchievement('Module Complete! 🎓', 'Next module is now unlocked'), 700);
+          if (updated.xp > progress.xp) {
+            showXP(updated.xp - progress.xp);
+            showAchievement('Module Complete! 🎓', 'Next module is now unlocked');
+          }
         }
+        if (currentSession()) setState('result');
+      } catch {
+        if (currentSession()) setSaveError('Could not save quiz progress. Your answers are kept. Try again.');
       } finally {
+        saving.current = false;
         setIsSaving(false);
-        setState('result');
       }
     }
   };
@@ -129,7 +147,7 @@ function QuizContent({ moduleId }: { moduleId: string }) {
           {passed ? (
             <View style={[styles.resultCard, { backgroundColor: '#10B98118', borderColor: '#10B98133' }]}>
               <Text style={[styles.resultCardText, { color: '#10B981' }]}>
-                ✅ Module completed! You earned XP and unlocked the next module.
+                ✅ Quiz result saved. Module completion is up to date.
               </Text>
             </View>
           ) : (
@@ -156,6 +174,7 @@ function QuizContent({ moduleId }: { moduleId: string }) {
                   setSelectedAnswer(null);
                   setAnsweredCorrectly(null);
                   setState('question');
+                  resultSaved.current = false;
                 }}
                 style={[styles.resultBtn, { backgroundColor: goalColor }]}
               />
@@ -281,10 +300,11 @@ function QuizContent({ moduleId }: { moduleId: string }) {
           </View>
         )}
 
+        {saveError && <Text accessibilityRole="alert" style={{ color: colors.text }}>{saveError}</Text>}
         {/* Next Button */}
         {selectedAnswer !== null && (
           <Button
-            title={currentIndex < questions.length - 1 ? 'Next Question →' : 'See Results →'}
+            title={saveError ? 'Retry saving result' : currentIndex < questions.length - 1 ? 'Next Question →' : 'See Results →'}
             onPress={handleNext}
             loading={isSaving}
             fullWidth

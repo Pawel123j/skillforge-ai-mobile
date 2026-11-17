@@ -55,7 +55,8 @@ export const authService = {
     }
 
     const { data, error } = await supabase!.auth.getSession();
-    if (error || !data.session) return null;
+    if (error) throw error;
+    if (!data.session) return null;
 
     return {
       userId: data.session.user.id,

@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useThemeStore } from '@/stores/themeStore';
-import { useAuthStore } from '@/stores/authStore';
+import { captureSession, useAuthStore } from '@/stores/authStore';
 import { profileService } from '@/services/profileService';
 import { progressService } from '@/services/progressService';
 import { Button } from '@/components/common/Button';
@@ -57,6 +57,7 @@ export default function OnboardingScreen() {
   const handleFinish = async () => {
     if (!userId || !selectedGoal || !selectedLevel || !selectedTime) return;
 
+    const currentSession = captureSession();
     setIsLoading(true);
     setError(null);
     try {
@@ -66,14 +67,16 @@ export default function OnboardingScreen() {
         daily_time_minutes: selectedTime,
       });
 
+      if (!currentSession()) return;
       updateProfile({
         learning_goal: selectedGoal,
         skill_level: selectedLevel,
         daily_time_minutes: selectedTime,
         onboarding_completed: true,
-      });
+      }, userId);
 
       const progress = await progressService.getProgress(userId);
+      if (!currentSession()) return;
       updateProgress(progress);
 
       router.replace('/(tabs)/dashboard');

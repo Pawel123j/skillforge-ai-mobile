@@ -85,7 +85,7 @@ export default function RegisterScreen() {
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Join thousands of aspiring developers
+            Create your personal learning plan
           </Text>
 
           <Controller

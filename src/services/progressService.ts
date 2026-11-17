@@ -3,9 +3,11 @@ import { MOCK_PROGRESS } from '@/lib/mockData';
 import { UserProgress } from '@/types';
 import { XP_VALUES } from '@/constants';
 
+let mockProgress = { ...MOCK_PROGRESS };
+
 export const progressService = {
   async getProgress(userId: string): Promise<UserProgress> {
-    if (IS_MOCK_MODE) return { ...MOCK_PROGRESS, user_id: userId };
+    if (IS_MOCK_MODE) return { ...mockProgress, user_id: userId };
 
     const { data, error } = await supabase!
       .from('user_progress')
@@ -67,7 +69,8 @@ export const progressService = {
     };
 
     if (IS_MOCK_MODE) {
-      return { ...currentProgress, ...updated };
+      mockProgress = { ...currentProgress, ...updated };
+      return mockProgress;
     }
 
     const { data, error } = await supabase!
@@ -91,7 +94,8 @@ export const progressService = {
     };
 
     if (IS_MOCK_MODE) {
-      return { ...currentProgress, ...updated };
+      mockProgress = { ...currentProgress, ...updated };
+      return mockProgress;
     }
 
     const { data, error } = await supabase!
