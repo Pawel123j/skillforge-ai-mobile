@@ -13,10 +13,12 @@ interface ProjectState {
   updateProject: (projectId: string, updates: Partial<ProjectFormData>) => Promise<void>;
   setProjectStatus: (projectId: string, status: ProjectStatus) => Promise<void>;
   clearError: () => void;
+  reset: () => void;
 }
 
 let mutationVersion = 0;
 let loadVersion = 0;
+let accountVersion = 0;
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
@@ -25,56 +27,68 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   pendingStatus: {},
 
   loadProjects: async (userId, goal) => {
+    const account = accountVersion;
     const currentLoad = ++loadVersion;
     const currentMutation = mutationVersion;
     set({ isLoading: true, error: null });
     try {
       const projects = await projectService.getProjects(userId, goal);
-      if (currentLoad !== loadVersion || currentMutation !== mutationVersion) return;
+      if (account !== accountVersion || currentLoad !== loadVersion || currentMutation !== mutationVersion) return;
       set({ projects: projects.map((item) => get().pendingStatus[item.id]
         ? get().projects.find((current) => current.id === item.id) ?? item : item) });
     } catch (err: any) {
-      if (currentLoad === loadVersion && currentMutation === mutationVersion) {
+      if (account !== accountVersion) return;
+      if (account === accountVersion && currentLoad === loadVersion && currentMutation === mutationVersion) {
         set({ error: err.message ?? 'Failed to load projects' });
       }
     } finally {
-      if (currentLoad === loadVersion) set({ isLoading: false });
+      if (account === accountVersion && currentLoad === loadVersion) set({ isLoading: false });
     }
   },
 
   createProject: async (userId, formData) => {
+    const account = accountVersion;
     mutationVersion++;
-    set({ error: null });
     set({ isLoading: true, error: null });
     try {
       const newProject = await projectService.createProject(userId, formData);
+      if (account !== accountVersion) return;
       set({ projects: [newProject, ...get().projects] });
     } catch (err: any) {
+      if (account !== accountVersion) return;
       set({ error: err.message ?? 'Failed to create project' });
       throw err;
     } finally {
-      mutationVersion++;
-      set({ isLoading: false });
+      if (account === accountVersion) {
+        mutationVersion++;
+        set({ isLoading: false });
+      }
     }
   },
 
   updateProject: async (projectId, updates) => {
+    const account = accountVersion;
     mutationVersion++;
     set({ error: null });
     try {
       const updated = await projectService.updateProject(projectId, updates);
+      if (account !== accountVersion) return;
       set({
         projects: get().projects.map((p) => (p.id === projectId ? updated : p)),
       });
     } catch (err: any) {
+      if (account !== accountVersion) return;
       set({ error: err.message ?? 'Failed to update project' });
       throw err;
     } finally {
-      mutationVersion++;
+      if (account === accountVersion) {
+        mutationVersion++;
+      }
     }
   },
 
   setProjectStatus: async (projectId, status) => {
+    const account = accountVersion;
     // One write per record: repeated taps cannot race an earlier response.
     if (get().pendingStatus[projectId]) return;
     const previous = get().projects.find((item) => item.id === projectId);
@@ -87,18 +101,28 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     });
     try {
       await projectService.updateProjectStatus(projectId, status);
+      if (account !== accountVersion) return;
     } catch (err: any) {
+      if (account !== accountVersion) return;
       set({
         projects: get().projects.map((item) => item.id === projectId ? { ...item, status: previous.status } : item),
         error: err.message ?? 'Could not save project status. Please try again.',
       });
     } finally {
-      mutationVersion++;
-      const pendingStatus = { ...get().pendingStatus };
-      delete pendingStatus[projectId];
-      set({ pendingStatus });
+      if (account === accountVersion) {
+        mutationVersion++;
+        const pendingStatus = { ...get().pendingStatus };
+        delete pendingStatus[projectId];
+        set({ pendingStatus });
+      }
     }
   },
 
+  reset: () => {
+    accountVersion++;
+    mutationVersion++;
+    loadVersion++;
+    set({ projects: [], pendingStatus: {}, error: null, isLoading: false });
+  },
   clearError: () => set({ error: null }),
 }));

@@ -8,9 +8,11 @@ export interface OnboardingData {
   daily_time_minutes: DailyTime;
 }
 
+let mockProfile = { ...MOCK_PROFILE };
+
 export const profileService = {
   async getProfile(userId: string): Promise<Profile | null> {
-    if (IS_MOCK_MODE) return MOCK_PROFILE;
+    if (IS_MOCK_MODE) return { ...mockProfile, user_id: userId };
 
     const { data, error } = await supabase!
       .from('profiles')
@@ -44,7 +46,7 @@ export const profileService = {
   },
 
   async completeOnboarding(userId: string, data: OnboardingData): Promise<void> {
-    if (IS_MOCK_MODE) return;
+    if (IS_MOCK_MODE) { mockProfile = { ...mockProfile, ...data, onboarding_completed: true }; return; }
 
     const { error } = await supabase!
       .from('profiles')
@@ -62,7 +64,7 @@ export const profileService = {
     userId: string,
     updates: Partial<Pick<Profile, 'full_name' | 'learning_goal' | 'daily_time_minutes'>>
   ): Promise<void> {
-    if (IS_MOCK_MODE) return;
+    if (IS_MOCK_MODE) { mockProfile = { ...mockProfile, ...updates }; return; }
 
     const { error } = await supabase!
       .from('profiles')

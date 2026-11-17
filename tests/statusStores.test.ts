@@ -8,8 +8,38 @@ jest.mock('@/services/projectService', () => ({ projectService: { updateProjectS
 
 beforeEach(() => {
   jest.resetAllMocks();
+  useTaskStore.getState().reset();
+  useProjectStore.getState().reset();
   useTaskStore.setState({ tasks: [{ id: 'task', status: 'todo', title: 'Test' } as Task], pendingStatus: {}, error: null });
   useProjectStore.setState({ projects: [{ id: 'project', status: 'idea' } as Project], pendingStatus: {}, error: null });
+});
+
+test('pending task and project reads cannot restore data after account reset', async () => {
+  let finishTasks!: (tasks: Task[]) => void;
+  let finishProjects!: (projects: Project[]) => void;
+  jest.mocked(taskService.getTasks).mockImplementation(() => new Promise(resolve => { finishTasks = resolve; }));
+  jest.mocked(projectService.getProjects).mockImplementation(() => new Promise(resolve => { finishProjects = resolve; }));
+  const tasks = useTaskStore.getState().loadTasks('previous');
+  const projects = useProjectStore.getState().loadProjects('previous', 'frontend');
+  useTaskStore.getState().reset();
+  useProjectStore.getState().reset();
+  finishTasks([{ id: 'private-task' } as Task]);
+  finishProjects([{ id: 'private-project' } as Project]);
+  await Promise.all([tasks, projects]);
+  expect(useTaskStore.getState().tasks).toEqual([]);
+  expect(useProjectStore.getState().projects).toEqual([]);
+});
+
+test('old status failure cannot roll back the next account or overwrite its error', async () => {
+  let fail!: (error: Error) => void;
+  jest.mocked(taskService.updateTaskStatus).mockImplementation(() => new Promise((_, reject) => { fail = reject; }));
+  const pending = useTaskStore.getState().setTaskStatus('task', 'done');
+  useTaskStore.getState().reset();
+  useTaskStore.setState({ tasks: [{ id: 'task', status: 'in_progress' } as Task], error: 'new account error' });
+  fail(new Error('old request failed'));
+  await pending;
+  expect(useTaskStore.getState().tasks[0].status).toBe('in_progress');
+  expect(useTaskStore.getState().error).toBe('new account error');
 });
 
 test.each(['403 forbidden', 'offline'])('task restores prior status and exposes error: %s', async (message) => {
