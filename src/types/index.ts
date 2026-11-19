@@ -147,6 +147,14 @@ export interface QuizQuestion {
   module_id: string;
   question: string;
   options: string[];
+  // SF-02: serwer ujawnia poprawną odpowiedź i wyjaśnienie dopiero po zapisaniu odpowiedzi.
+  correct_index?: number;
+  explanation?: string;
+}
+
+export interface QuizAnswerFeedback {
+  correct: boolean;
+  chosen_index: number;
   correct_index: number;
   explanation: string;
 }
