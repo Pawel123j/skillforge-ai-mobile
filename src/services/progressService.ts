@@ -69,38 +69,26 @@ export const progressService = {
       return { ...currentProgress, ...updated };
     }
 
-    const { data, error } = await supabase!
-      .from('user_progress')
-      .update(updated)
-      .eq('user_id', userId)
-      .select()
-      .single();
+    // SF-02: XP i seria dni liczone na serwerze; klient nie ma uprawnień UPDATE.
+    const { data, error } = await supabase!.rpc('complete_lesson', { p_lesson_id: lessonId });
 
     if (error) throw error;
     return data as UserProgress;
   },
 
+  /**
+   * Tryb mock: lokalne oznaczenie modułu. W trybie Supabase moduł i XP zalicza serwer
+   * w `finish_quiz` (SF-02) — klient nie zapisuje postępu bezpośrednio.
+   */
   async completeModule(userId: string, moduleId: string, currentProgress: UserProgress): Promise<UserProgress> {
     if (currentProgress.completed_modules.includes(moduleId)) return currentProgress;
+    if (!IS_MOCK_MODE) return currentProgress;
 
-    const updated: Partial<UserProgress> = {
+    return {
+      ...currentProgress,
       completed_modules: [...currentProgress.completed_modules, moduleId],
       xp: currentProgress.xp + XP_VALUES.QUIZ_PASS,
       updated_at: new Date().toISOString(),
     };
-
-    if (IS_MOCK_MODE) {
-      return { ...currentProgress, ...updated };
-    }
-
-    const { data, error } = await supabase!
-      .from('user_progress')
-      .update(updated)
-      .eq('user_id', userId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data as UserProgress;
   },
 };

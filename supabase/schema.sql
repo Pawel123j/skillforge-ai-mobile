@@ -1,3 +1,6 @@
+-- WAŻNE (2026-11): po tym pliku uruchom supabase/migrations/20261119000000_security_hardening.sql
+-- (ukrycie odpowiedzi quizów, wynik i XP liczone na serwerze, search_path funkcji SECURITY DEFINER).
+-- Testy: supabase/tests/security_hardening_test.sql.
 -- ─────────────────────────────────────────────────────────────────────────────
 -- SkillForge AI — Supabase Database Schema
 -- Run this in your Supabase SQL Editor (https://supabase.com/dashboard)
@@ -198,7 +201,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp;
 
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users

@@ -1,6 +1,6 @@
 import { supabase, IS_MOCK_MODE } from '@/lib/supabase';
 import { MOCK_QUIZ_QUESTIONS } from '@/lib/mockData';
-import { QuizQuestion, QuizResult } from '@/types';
+import { QuizAnswerFeedback, QuizQuestion, QuizResult, UserProgress } from '@/types';
 import { QUIZ_PASS_THRESHOLD } from '@/constants';
 
 export const quizService = {
@@ -11,7 +11,8 @@ export const quizService = {
 
     const { data, error } = await supabase!
       .from('quiz_questions')
-      .select('*')
+      // SF-02: correct_index i explanation nie są dostępne do odczytu (uprawnienia kolumn).
+      .select('id, module_id, question, options')
       .eq('module_id', moduleId)
       .order('id');
 
@@ -19,41 +20,66 @@ export const quizService = {
     return data as QuizQuestion[];
   },
 
-  async saveResult(
+  /**
+   * Zapisuje odpowiedź na serwerze i zwraca informację zwrotną. Liczy się pierwsza
+   * odpowiedź w danym podejściu — ponowne wywołanie jej nie zmienia (SF-02).
+   */
+  async answerQuestion(
+    attemptId: string,
+    question: QuizQuestion,
+    chosenIndex: number
+  ): Promise<QuizAnswerFeedback> {
+    if (IS_MOCK_MODE) {
+      const correctIndex = question.correct_index ?? 0;
+      return {
+        correct: chosenIndex === correctIndex,
+        chosen_index: chosenIndex,
+        correct_index: correctIndex,
+        explanation: question.explanation ?? '',
+      };
+    }
+
+    const { data, error } = await supabase!.rpc('answer_quiz_question', {
+      p_attempt_id: attemptId,
+      p_question_id: question.id,
+      p_chosen_index: chosenIndex,
+    });
+    if (error) throw error;
+    return data as QuizAnswerFeedback;
+  },
+
+  /**
+   * Kończy podejście: wynik i XP liczy serwer z zapisanych odpowiedzi (SF-02).
+   * W trybie mock wynik pochodzi z lokalnie policzonych poprawnych odpowiedzi.
+   */
+  async finishQuiz(
+    attemptId: string,
     userId: string,
     moduleId: string,
-    score: number,
+    localCorrect: number,
     totalQuestions: number
-  ): Promise<QuizResult> {
-    const passed = score / totalQuestions >= QUIZ_PASS_THRESHOLD;
+  ): Promise<{ result: QuizResult; progress: UserProgress | null }> {
+    if (IS_MOCK_MODE) {
+      return {
+        result: {
+          id: `result-${Date.now()}`,
+          user_id: userId,
+          module_id: moduleId,
+          score: localCorrect,
+          total_questions: totalQuestions,
+          passed: localCorrect / totalQuestions >= QUIZ_PASS_THRESHOLD,
+          taken_at: new Date().toISOString(),
+        },
+        progress: null,
+      };
+    }
 
-    const result: QuizResult = {
-      id: `result-${Date.now()}`,
-      user_id: userId,
-      module_id: moduleId,
-      score,
-      total_questions: totalQuestions,
-      passed,
-      taken_at: new Date().toISOString(),
-    };
-
-    if (IS_MOCK_MODE) return result;
-
-    const { data, error } = await supabase!
-      .from('quiz_results')
-      .insert({
-        user_id: userId,
-        module_id: moduleId,
-        score,
-        total_questions: totalQuestions,
-        passed,
-        taken_at: result.taken_at,
-      })
-      .select()
-      .single();
-
+    const { data, error } = await supabase!.rpc('finish_quiz', {
+      p_attempt_id: attemptId,
+      p_module_id: moduleId,
+    });
     if (error) throw error;
-    return data as QuizResult;
+    return data as { result: QuizResult; progress: UserProgress | null };
   },
 
   async getResultsForUser(userId: string): Promise<QuizResult[]> {
@@ -108,4 +134,14 @@ function generateGenericQuestions(moduleId: string): QuizQuestion[] {
       explanation: 'Reading docs then building something small helps you learn and retain concepts effectively.',
     },
   ];
+}
+
+/** Identyfikator podejścia. Nie musi być tajny — własność i jednorazowość egzekwuje serwer. */
+export function newAttemptId(): string {
+  const cryptoApi = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (cryptoApi?.randomUUID) return cryptoApi.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
 }

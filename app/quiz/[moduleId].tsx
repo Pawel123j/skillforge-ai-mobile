@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/stores/themeStore';
 import { useToastStore } from '@/stores/toastStore';
 import { useAuthStore } from '@/stores/authStore';
-import { quizService } from '@/services/quizService';
+import { newAttemptId, quizService } from '@/services/quizService';
 import { progressService } from '@/services/progressService';
 import { Button } from '@/components/common/Button';
 import { ProgressBar } from '@/components/common/ProgressBar';
@@ -35,6 +35,8 @@ export default function QuizScreen() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answeredCorrectly, setAnsweredCorrectly] = useState<boolean | null>(null);
   const [score, setScore] = useState(0);
+  const [attemptId] = useState(newAttemptId);
+  const [isAnswering, setIsAnswering] = useState(false);
   const [state, setState] = useState<QuizState>('question');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -55,17 +57,26 @@ export default function QuizScreen() {
     }
   };
 
-  const handleSelectAnswer = (index: number) => {
-    if (selectedAnswer !== null) return; // Already answered
+  const handleSelectAnswer = async (index: number) => {
+    if (selectedAnswer !== null || isAnswering) return; // Already answered
 
-    const question = questions[currentIndex];
-    const correct = index === question.correct_index;
-
-    setSelectedAnswer(index);
-    setAnsweredCorrectly(correct);
-
-    if (correct) {
-      setScore((s) => s + 1);
+    // SF-02: poprawność ocenia serwer; poprawna odpowiedź i wyjaśnienie przychodzą dopiero
+    // po zapisaniu odpowiedzi (pierwsza odpowiedź jest ostateczna).
+    setIsAnswering(true);
+    try {
+      const feedback = await quizService.answerQuestion(attemptId, questions[currentIndex], index);
+      setQuestions((qs) =>
+        qs.map((q, i) =>
+          i === currentIndex ? { ...q, correct_index: feedback.correct_index, explanation: feedback.explanation } : q
+        )
+      );
+      setSelectedAnswer(feedback.chosen_index);
+      setAnsweredCorrectly(feedback.correct);
+      if (feedback.correct) {
+        setScore((s) => s + 1);
+      }
+    } finally {
+      setIsAnswering(false);
     }
   };
 
@@ -78,11 +89,18 @@ export default function QuizScreen() {
       // Quiz complete
       setIsSaving(true);
       try {
-        await quizService.saveResult(userId!, moduleId!, score, questions.length);
+        const { result, progress: serverProgress } = await quizService.finishQuiz(
+          attemptId,
+          userId!,
+          moduleId!,
+          score,
+          questions.length
+        );
+        setScore(result.score);
 
-        const passed = score / questions.length >= QUIZ_PASS_THRESHOLD;
-        if (passed && progress) {
-          const updated = await progressService.completeModule(userId!, moduleId!, progress);
+        const wasCompleted = progress?.completed_modules.includes(moduleId!) ?? false;
+        if (result.passed && progress && !wasCompleted) {
+          const updated = serverProgress ?? (await progressService.completeModule(userId!, moduleId!, progress));
           updateProgress(updated);
           showXP(100);
           setTimeout(() => showAchievement('Module Complete! 🎓', 'Next module is now unlocked'), 700);
@@ -237,7 +255,7 @@ export default function QuizScreen() {
                   { backgroundColor: bgColor, borderColor },
                 ]}
                 onPress={() => handleSelectAnswer(index)}
-                disabled={selectedAnswer !== null}
+                disabled={selectedAnswer !== null || isAnswering}
                 activeOpacity={0.8}
               >
                 <View style={[styles.optionLetter, { backgroundColor: `${borderColor}22` }]}>
