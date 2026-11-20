@@ -41,7 +41,7 @@ export default function ProjectsScreen() {
 
   useEffect(() => {
     if (userId) loadProjects(userId, profile?.learning_goal ?? null);
-  }, [userId, profile?.learning_goal]);
+  }, [userId, profile?.learning_goal, loadProjects]);
 
   const filteredProjects = projects.filter((p) =>
     filter === 'all' ? true : p.status === filter

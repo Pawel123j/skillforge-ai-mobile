@@ -48,3 +48,14 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+
+# Browser test outputs
+e2e/artifacts/
+e2e/__pycache__/
+.pytest_cache/
+
+.venv-e2e/
+
+# Python integration test caches
+__pycache__/
+*.py[cod]

@@ -11,11 +11,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/stores/themeStore';
 import { useAuthStore } from '@/stores/authStore';
 import { roadmapService } from '@/services/roadmapService';
-import { MOCK_MODULES } from '@/lib/mockData';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import { Badge } from '@/components/common/Badge';
 import { Button } from '@/components/common/Button';
 import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { LessonWithProgress, Module } from '@/types';
 import { getDifficultyColor, getDifficultyLabel, calcProgressPercent, formatMinutes } from '@/utils';
 import { GoalColors } from '@/constants';
@@ -28,30 +28,27 @@ export default function ModuleDetailScreen() {
 
   const [module, setModule] = useState<Module | null>(null);
   const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const requestKey = JSON.stringify([id, progress?.completed_lessons ?? []]);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const isLoading = loadedKey !== requestKey;
 
   const goalColor = profile?.learning_goal ? GoalColors[profile.learning_goal] : colors.primary;
 
   useEffect(() => {
-    if (!id) return;
-    loadModuleData();
-  }, [id]);
-
-  const loadModuleData = async () => {
-    if (!id || !progress) return;
-    try {
-      const lessonData = await roadmapService.getLessonsForModule(id, progress.completed_lessons);
-      setLessons(lessonData);
-
-      const allModules = Object.values(MOCK_MODULES).flat();
-      const found = allModules.find((m) => m.id === id);
-      setModule(found ?? null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    let active = true;
+    Promise.all([
+      roadmapService.getLessonsForModule(id, progress?.completed_lessons ?? []),
+      roadmapService.getModuleById(id),
+    ]).then(([lessonData, found]) => {
+      if (active) { setLessons(lessonData); setModule(found); }
+    }).catch(() => {
+      if (active) setModule(null);
+    }).finally(() => { if (active) setLoadedKey(requestKey); });
+    return () => { active = false; };
+  }, [id, progress?.completed_lessons, requestKey]);
 
   if (isLoading) return <LoadingState message="Loading module..." fullScreen />;
+  if (!module) return <ErrorState message="Module unavailable. Go back and choose another module." />;
 
   const completedCount = lessons.filter((l) => l.is_completed).length;
   const progress_pct = calcProgressPercent(completedCount, lessons.length);
@@ -199,7 +196,7 @@ export default function ModuleDetailScreen() {
               <Text style={styles.quizIcon}>📝</Text>
               <Text style={[styles.quizTitle, { color: colors.text }]}>Module Quiz</Text>
               <Text style={[styles.quizDesc, { color: colors.textSecondary }]}>
-                You've completed all lessons! Take the quiz to earn XP and unlock the next module.
+                You&apos;ve completed all lessons! Take the quiz to earn XP and unlock the next module.
               </Text>
               <Button
                 title="Take Quiz →"

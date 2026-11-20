@@ -35,6 +35,7 @@ export default function RegisterScreen() {
   const { signUp, isLoading } = useAuthStore();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   const { control, handleSubmit, formState: { errors }, setError } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -43,12 +44,25 @@ export default function RegisterScreen() {
 
   const onSubmit = async (values: RegisterValues) => {
     try {
-      await signUp(values.email, values.password, values.fullName);
-      router.replace('/onboarding');
+      const result = await signUp(values.email, values.password, values.fullName);
+      if (result === 'confirmationRequired') setConfirmationSent(true);
+      else router.replace('/onboarding');
     } catch (err: any) {
       setError('email', { message: err.message ?? 'Registration failed' });
     }
   };
+
+  if (confirmationSent) {
+    return (
+      <View style={[styles.scroll, { backgroundColor: colors.background }]}>
+        <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>Check your email</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+          Follow the confirmation link, then return here to sign in.
+        </Text>
+        <Button title="Go to Sign In" onPress={() => router.replace('/auth/login')} />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView

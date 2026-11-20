@@ -13,7 +13,7 @@ export default function RootLayout() {
   useEffect(() => {
     loadTheme();
     initialize();
-  }, []);
+  }, [initialize, loadTheme]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
