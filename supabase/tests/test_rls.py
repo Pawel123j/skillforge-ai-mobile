@@ -99,7 +99,7 @@ def test_owner_crud_and_no_cross_user_write(db, table):
     assert db.execute(sql.SQL('DELETE FROM {} WHERE id=%s').format(ident), (row,)).rowcount == 1
 
 
-@pytest.mark.parametrize('table,column,value', [('profiles','full_name','Changed'), ('user_progress','xp',25)])
+@pytest.mark.parametrize('table,column,value', [('profiles','full_name','Changed')])
 def test_owner_update_cannot_transfer_ownership(db, table, column, value):
     identity(db)
     ident = sql.Identifier(table)
@@ -108,6 +108,19 @@ def test_owner_update_cannot_transfer_ownership(db, table, column, value):
     with pytest.raises(psycopg.errors.InsufficientPrivilege), db.transaction():
         db.execute(sql.SQL('UPDATE {} SET user_id=%s WHERE user_id=%s').format(ident), (str(uuid4()),A))
 
+
+
+def test_client_cannot_write_progress_xp(db):
+    """SF-02: XP is awarded only by server-side functions (finish_quiz,
+    complete_lesson); a signed-in client cannot raise its own XP."""
+    identity(db)
+    try:
+        with db.transaction():
+            changed = db.execute('UPDATE user_progress SET xp=25 WHERE user_id=%s', (A,)).rowcount
+    except psycopg.errors.InsufficientPrivilege:
+        changed = 0
+    assert changed == 0
+    assert db.execute('SELECT xp FROM user_progress WHERE user_id=%s', (A,)).fetchone() == (0,)
 
 @pytest.mark.parametrize('table', CONTENT)
 def test_authenticated_content_is_read_only(db, table):

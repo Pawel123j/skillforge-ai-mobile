@@ -62,6 +62,10 @@ jobs:
         run: |
           python -m pip install -r e2e/requirements.txt
           python -m playwright install --with-deps chromium
+      # Ubuntu 24.04 runners restrict unprivileged user namespaces via AppArmor,
+      # which Chromium's sandbox needs; allow them instead of using --no-sandbox.
+      - name: Allow Chromium sandbox (user namespaces)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Browser regression tests
         run: python -m pytest -q e2e --junitxml=e2e/artifacts/results.xml
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
