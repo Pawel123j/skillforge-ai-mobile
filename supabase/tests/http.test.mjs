@@ -99,7 +99,7 @@ test('real Supabase Auth and PostgREST isolate two users', { skip: !url || !anon
     });
   }
   await t.test('profile and progress updates cannot access or transfer another identity', async () => {
-    for (const [table, values] of [['profiles', { full_name: 'Changed fixture' }], ['user_progress', { xp: 25 }]]) {
+    for (const [table, values] of [['profiles', { full_name: 'Changed fixture' }]]) {
       const own = await alice.from(table).update(values).eq('user_id', a).select().single();
       assert.equal(own.error, null);
       const foreign = await bob.from(table).update(values).eq('user_id', a).select();
@@ -109,23 +109,28 @@ test('real Supabase Auth and PostgREST isolate two users', { skip: !url || !anon
       assert.ok(transferred.error, 'ownership transfer must fail');
     }
   });
-  await t.test('quiz results are private, append-only and reject another user id', async () => {
+  // SF-02: XP and quiz results are written only by server-side functions
+  // (answer_quiz_question / finish_quiz / complete_lesson), never by the client.
+  const deniedOrEmpty = (result) =>
+    assert.ok(result.error?.code === '42501' || (result.error === null && result.data.length === 0),
+      `expected denial, got ${JSON.stringify(result)}`);
+  await t.test('a client cannot write its own XP', async () => {
+    deniedOrEmpty(await alice.from('user_progress').update({ xp: 25 }).eq('user_id', a).select());
+    const progress = await alice.from('user_progress').select('xp').eq('user_id', a).single();
+    assert.equal(progress.error, null);
+    assert.equal(progress.data.xp, 0);
+  });
+  await t.test('quiz results are server-written, private and append-only', async () => {
     const values = { user_id: a, module_id: moduleId, score: 1, total_questions: 1, passed: true };
-    const own = await alice.from('quiz_results').insert(values).select().single();
-    assert.equal(own.error, null);
+    const own = await alice.from('quiz_results').insert(values);
+    assert.equal(own.error?.code, '42501', 'clients must not insert their own score');
     const forged = await bob.from('quiz_results').insert(values);
     assert.equal(forged.error?.code, '42501');
     const foreign = await bob.from('quiz_results').select('*');
     assert.equal(foreign.error, null);
     assert.deepEqual(foreign.data, []);
-    for (const request of [
-      alice.from('quiz_results').update({ score: 0 }).eq('id', own.data.id).select(),
-      alice.from('quiz_results').delete().eq('id', own.data.id).select(),
-    ]) {
-      const result = await request;
-      assert.equal(result.error, null);
-      assert.deepEqual(result.data, []);
-    }
+    deniedOrEmpty(await alice.from('quiz_results').update({ score: 0 }).eq('user_id', a).select());
+    deniedOrEmpty(await alice.from('quiz_results').delete().eq('user_id', a).select());
   });
   await t.test('tampered access tokens are rejected by PostgREST', async () => {
     const session = await alice.auth.getSession();
