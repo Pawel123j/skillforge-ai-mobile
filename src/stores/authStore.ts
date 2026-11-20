@@ -18,7 +18,7 @@ interface AuthState {
   // Actions
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<'signedIn' | 'confirmationRequired'>;
   signOut: () => Promise<void>;
   loadProfile: (userId: string) => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => void;
@@ -80,9 +80,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const result = await authService.signUp({ email, password, fullName });
-      const profile = await profileService.createProfile(result.userId, fullName);
-      const progress = await progressService.getProgress(result.userId);
-      set({ userId: result.userId, email: result.email, profile, progress });
+      if (result.requiresEmailConfirmation) {
+        set({ userId: null, email: null, profile: null, progress: null });
+        return 'confirmationRequired';
+      }
+      // The database trigger creates profile/progress atomically with auth.users.
+      // A second INSERT fails with a unique constraint (or RLS without a session).
+      await get().loadProfile(result.userId);
+      set({ userId: result.userId, email: result.email });
+      return 'signedIn';
     } catch (err: any) {
       set({ error: err.message ?? 'Registration failed' });
       throw err;

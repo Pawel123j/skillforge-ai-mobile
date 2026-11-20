@@ -93,7 +93,10 @@ FROM html_module, (VALUES
     '<nav> is a semantic element that wraps the main navigation links of a page.'
   )
 ) AS q(question, options, correct_index, explanation)
-ON CONFLICT DO NOTHING;
+WHERE NOT EXISTS (
+  SELECT 1 FROM quiz_questions existing
+  WHERE existing.module_id = html_module.id AND existing.question = q.question
+);
 
 -- ─── Suggested Projects ───────────────────────────────────────────────────────
 -- Note: Suggested projects are seeded per user via the app's mock data.

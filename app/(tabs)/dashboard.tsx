@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import { XPRingCard } from '@/components/cards/XPRingCard';
 import { WeeklyActivityChart } from '@/components/cards/WeeklyActivityChart';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import { LoadingState } from '@/components/common/LoadingState';
-import { ModuleWithProgress, MentorInsight } from '@/types';
+import { ModuleWithProgress } from '@/types';
 import { GoalColors, GoalIcons, GoalLabels } from '@/constants';
 import { calcProgressPercent } from '@/utils';
 
@@ -33,7 +33,6 @@ export default function DashboardScreen() {
   const router = useRouter();
 
   const [currentModule, setCurrentModule] = useState<ModuleWithProgress | null>(null);
-  const [mentorInsight, setMentorInsight] = useState<MentorInsight | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -55,15 +54,13 @@ export default function DashboardScreen() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [userId, goal, progress, profile]);
+  }, [userId, goal, progress, profile, loadTasks, loadProjects]);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  useEffect(() => {
-    if (profile && progress && tasks.length >= 0 && projects.length >= 0) {
-      setMentorInsight(generateMentorInsight(profile, progress, tasks, projects));
-    }
-  }, [profile, progress, tasks, projects]);
+  const mentorInsight = useMemo(() => profile && progress
+    ? generateMentorInsight(profile, progress, tasks, projects) : null,
+  [profile, progress, tasks, projects]);
 
   const onRefresh = async () => { setIsRefreshing(true); await loadData(); };
 
@@ -161,7 +158,7 @@ export default function DashboardScreen() {
 
         {/* ── Today's Task ── */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Today's Focus</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Today&apos;s Focus</Text>
           {todayTask ? (
             <TouchableOpacity
               style={[styles.taskCard, { backgroundColor: colors.card, borderColor: colors.border }]}

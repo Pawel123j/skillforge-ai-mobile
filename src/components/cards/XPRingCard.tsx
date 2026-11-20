@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, Animated, useAnimatedValue } from 'react-native';
 import { useThemeStore } from '@/stores/themeStore';
 import { getXpLevel } from '@/utils';
 
@@ -14,14 +14,14 @@ export function XPRingCard({ xp, goalColor }: XPRingCardProps) {
   const progress = Math.min(1, xp / nextLevelXp);
 
   // Animated bar width (0–100%)
-  const barWidth = useRef(new Animated.Value(0)).current;
+  const barWidth = useAnimatedValue(0);
   useEffect(() => {
     Animated.timing(barWidth, {
       toValue: progress * 100,
       duration: 900,
       useNativeDriver: false,
     }).start();
-  }, [xp]);
+  }, [barWidth, progress]);
 
   const widthInterp = barWidth.interpolate({
     inputRange: [0, 100],

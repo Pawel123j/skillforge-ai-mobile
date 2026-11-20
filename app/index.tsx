@@ -18,7 +18,7 @@ export default function Index() {
     } else {
       router.replace('/(tabs)/dashboard');
     }
-  }, [isInitialized, userId, profile]);
+  }, [isInitialized, userId, profile, router]);
 
   return <LoadingState message="Starting SkillForge AI..." fullScreen />;
 }

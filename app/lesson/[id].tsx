@@ -13,16 +13,20 @@ import { useAuthStore } from '@/stores/authStore';
 import { useToastStore } from '@/stores/toastStore';
 import { roadmapService } from '@/services/roadmapService';
 import { progressService } from '@/services/progressService';
-import { XP_VALUES } from '@/constants';
+import { XP_VALUES, GoalColors } from '@/constants';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import { Lesson } from '@/types';
 import { formatMinutes } from '@/utils';
-import { GoalColors } from '@/constants';
 
 export default function LessonDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  return <LessonDetail key={id} id={id} />;
+}
+
+function LessonDetail({ id }: { id: string }) {
   const { colors } = useThemeStore();
   const { progress, profile, updateProgress, userId } = useAuthStore();
   const { showXP, showAchievement, showStreak } = useToastStore();
@@ -31,24 +35,18 @@ export default function LessonDetailScreen() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [isCompleted, setIsCompleted] = useState(false);
+  const isCompleted = progress?.completed_lessons.includes(id) ?? false;
 
   const goalColor = profile?.learning_goal ? GoalColors[profile.learning_goal] : colors.primary;
 
   useEffect(() => {
-    if (!id) return;
-    loadLesson();
+    let active = true;
+    roadmapService.getLessonById(id).then(
+      (data) => { if (active) setLesson(data); },
+      () => { if (active) setLesson(null); }
+    ).finally(() => { if (active) setIsLoading(false); });
+    return () => { active = false; };
   }, [id]);
-
-  const loadLesson = async () => {
-    try {
-      const data = await roadmapService.getLessonById(id!);
-      setLesson(data);
-      setIsCompleted(progress?.completed_lessons.includes(id!) ?? false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleComplete = async () => {
     if (!userId || !progress || !lesson || isCompleted) return;
@@ -57,7 +55,6 @@ export default function LessonDetailScreen() {
     try {
       const updated = await progressService.completeLesson(userId, lesson.id, progress);
       updateProgress(updated);
-      setIsCompleted(true);
 
       // Fire XP toast
       showXP(XP_VALUES.LESSON_COMPLETE);
@@ -77,7 +74,8 @@ export default function LessonDetailScreen() {
     }
   };
 
-  if (isLoading || !lesson) return <LoadingState message="Loading lesson..." fullScreen />;
+  if (isLoading) return <LoadingState message="Loading lesson..." fullScreen />;
+  if (!lesson) return <ErrorState message="Lesson unavailable. Go back and choose another lesson." />;
 
   const TYPE_ICONS: Record<string, string> = {
     reading: '📖',

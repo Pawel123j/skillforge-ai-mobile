@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useThemeStore } from '@/stores/themeStore';
@@ -25,7 +24,7 @@ type Step = typeof STEPS[number];
 
 export default function OnboardingScreen() {
   const { colors } = useThemeStore();
-  const { userId, profile, updateProfile, updateProgress } = useAuthStore();
+  const { userId, updateProfile, updateProgress } = useAuthStore();
   const router = useRouter();
 
   const [step, setStep] = useState<Step>('goal');
@@ -33,9 +32,9 @@ export default function OnboardingScreen() {
   const [selectedLevel, setSelectedLevel] = useState<SkillLevel | null>(null);
   const [selectedTime, setSelectedTime] = useState<DailyTime | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const stepIndex = STEPS.indexOf(step);
-  const progress = ((stepIndex + 1) / STEPS.length) * 100;
 
   const canProceed = () => {
     if (step === 'goal') return selectedGoal !== null;
@@ -59,6 +58,7 @@ export default function OnboardingScreen() {
     if (!userId || !selectedGoal || !selectedLevel || !selectedTime) return;
 
     setIsLoading(true);
+    setError(null);
     try {
       await profileService.completeOnboarding(userId, {
         learning_goal: selectedGoal,
@@ -77,9 +77,8 @@ export default function OnboardingScreen() {
       updateProgress(progress);
 
       router.replace('/(tabs)/dashboard');
-    } catch (err) {
-      // Still navigate — profile update is non-blocking in mock mode
-      router.replace('/(tabs)/dashboard');
+    } catch {
+      setError('Could not save your learning plan. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -154,7 +153,7 @@ export default function OnboardingScreen() {
     <View style={styles.stepContent}>
       <Text style={styles.stepEmoji}>📊</Text>
       <Text style={[styles.stepTitle, { color: colors.text }]}>
-        What's your current level?
+        What&apos;s your current level?
       </Text>
       <Text style={[styles.stepSubtitle, { color: colors.textSecondary }]}>
         This helps us tailor the roadmap to your experience.
@@ -268,6 +267,7 @@ export default function OnboardingScreen() {
       </ScrollView>
 
       <View style={[styles.bottomBar, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+        {error && <Text accessibilityRole="alert" style={{ color: colors.error, marginBottom: 12 }}>{error}</Text>}
         <Button
           title={step === 'time' ? 'Start Learning 🚀' : 'Continue'}
           onPress={handleNext}
