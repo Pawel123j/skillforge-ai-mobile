@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, useAnimatedValue } from 'react-native';
+import { View, Text, StyleSheet, Animated } from 'react-native';
+import { useAnimatedValue } from '@/hooks/useAnimatedValue';
 import { useThemeStore } from '@/stores/themeStore';
 import { getXpLevel } from '@/utils';
 

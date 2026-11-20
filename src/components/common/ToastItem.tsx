@@ -4,9 +4,9 @@ import {
   Text,
   StyleSheet,
   Animated,
-  useAnimatedValue,
   TouchableOpacity,
 } from 'react-native';
+import { useAnimatedValue } from '@/hooks/useAnimatedValue';
 import { useThemeStore } from '@/stores/themeStore';
 
 export type ToastType = 'xp' | 'achievement' | 'streak' | 'success' | 'warning' | 'error';
