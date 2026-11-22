@@ -71,9 +71,9 @@ export default function MentorScreen() {
         {/* Mentor Avatar */}
         <View style={[styles.mentorCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={styles.mentorAvatar}>🤖</Text>
-          <Text style={[styles.mentorName, { color: colors.text }]}>SkillForge AI Mentor</Text>
+          <Text style={[styles.mentorName, { color: colors.text }]}>SkillForge Learning Mentor</Text>
           <Text style={[styles.mentorDesc, { color: colors.textSecondary }]}>
-            I analyze your learning activity and provide personalized insights to keep you on track.
+            Rule-based suggestions from your learning activity. No language model or AI service is connected.
           </Text>
           <View style={[styles.mentorBadge, { backgroundColor: `${colors.primary}18` }]}>
             <Text style={[styles.mentorBadgeText, { color: colors.primary }]}>

@@ -7,13 +7,14 @@ import { getProjectStatusColor, getProjectStatusLabel } from '@/utils';
 
 interface ProjectCardProps {
   project: Project;
+  busy?: boolean;
   onPress: () => void;
   onStatusChange: (status: ProjectStatus) => void;
 }
 
 const STATUS_OPTIONS: ProjectStatus[] = ['idea', 'building', 'completed'];
 
-export function ProjectCard({ project, onPress, onStatusChange }: ProjectCardProps) {
+export function ProjectCard({ project, busy = false, onPress, onStatusChange }: ProjectCardProps) {
   const { colors } = useThemeStore();
   const statusColor = getProjectStatusColor(project.status);
 
@@ -21,6 +22,10 @@ export function ProjectCard({ project, onPress, onStatusChange }: ProjectCardPro
     <TouchableOpacity
       style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
       onPress={onPress}
+      disabled={busy}
+      accessibilityRole="button"
+      accessibilityLabel={`Edit ${project.title}`}
+      accessibilityState={{ disabled: busy, busy }}
       activeOpacity={0.85}
     >
       <View style={styles.header}>
@@ -73,7 +78,11 @@ export function ProjectCard({ project, onPress, onStatusChange }: ProjectCardPro
                   borderColor: project.status === s ? getProjectStatusColor(s) : 'transparent',
                 },
               ]}
-              onPress={() => onStatusChange(s)}
+              disabled={busy}
+              accessibilityRole="button"
+              accessibilityState={{ selected: project.status === s, disabled: busy, busy }}
+              accessibilityLabel={`Set ${project.title} to ${getProjectStatusLabel(s)}`}
+              onPress={(event) => { event.stopPropagation(); onStatusChange(s); }}
             >
               <Text
                 style={[
@@ -140,10 +149,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statusButtons: {
+    flexWrap: 'wrap',
     flexDirection: 'row',
     gap: 8,
   },
   statusBtn: {
+    minHeight: 48,
+    justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,

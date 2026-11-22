@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
-    minHeight: 36,
+    minHeight: 48,
   },
   lg: {
     paddingHorizontal: 28,

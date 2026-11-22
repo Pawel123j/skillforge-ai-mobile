@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Input } from '@/components/common/Input';
 import { Button } from '@/components/common/Button';
 import { APP_NAME } from '@/constants';
+import { IS_MOCK_MODE } from '@/lib/supabase';
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -39,9 +40,9 @@ export default function LoginScreen() {
   const onSubmit = async (values: LoginValues) => {
     try {
       await signIn(values.email, values.password);
-      router.replace('/(tabs)/dashboard');
-    } catch {
-      setError('email', { message: 'Invalid email or password' });
+      router.replace('/');
+    } catch (error: any) {
+      setError('email', { message: error.message ?? 'Could not sign in. Please retry.' });
     }
   };
 
@@ -59,7 +60,7 @@ export default function LoginScreen() {
           <Text style={styles.logo}>⚡</Text>
           <Text style={[styles.appName, { color: colors.primary }]}>{APP_NAME}</Text>
           <Text style={[styles.tagline, { color: colors.textSecondary }]}>
-            Your AI-powered learning journey starts here
+            Your guided learning journey starts here
           </Text>
         </View>
 
@@ -127,12 +128,12 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.demoNote, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
+        {IS_MOCK_MODE && <View style={[styles.demoNote, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
           <Text style={[styles.demoText, { color: colors.textSecondary }]}>
             💡 <Text style={{ fontWeight: '600', color: colors.text }}>Demo Mode: </Text>
-            No Supabase setup required. The app uses mock data to let you explore all features.
+            Explore sample data. Changes reset when you reload; no cloud account is connected.
           </Text>
-        </View>
+        </View>}
       </ScrollView>
     </KeyboardAvoidingView>
   );

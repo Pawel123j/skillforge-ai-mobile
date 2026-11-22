@@ -25,7 +25,7 @@ jest.mock('react-native-safe-area-context', () => jest.requireActual('react-nati
 beforeEach(() => {
   jest.restoreAllMocks();
   mockParams = { id: 'lesson-test', moduleId: 'module-test' };
-  useAuthStore.setState({ userId: 'demo-user', profile: MOCK_PROFILE, progress: { ...MOCK_PROGRESS, completed_lessons: [] } });
+  useAuthStore.setState({ userId: MOCK_PROFILE.user_id, profile: MOCK_PROFILE, progress: { ...MOCK_PROGRESS, completed_lessons: [] } });
 });
 
 test('missing lesson resolves loading to an error', async () => {
@@ -110,4 +110,19 @@ test('failed onboarding stays on the form and allows a retry', async () => {
   expect(await screen.findByText(/Could not save your learning plan/)).toBeTruthy();
   expect(mockRouter.replace).not.toHaveBeenCalled();
   expect(screen.getByRole('button', { name: 'Start Learning 🚀' })).toBeEnabled();
+});
+
+test('failed quiz save keeps answers and only shows results after a successful retry', async () => {
+  jest.spyOn(quizService, 'getQuestionsForModule').mockResolvedValue([{ id: 'q', module_id: 'module-test', question: 'Retry question', options: ['Correct', 'Wrong'], correct_index: 0, explanation: 'Explanation' }]);
+  const save = jest.spyOn(quizService, 'finishQuiz').mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce({ result: { score: 1, passed: true } as any, progress: null as any });
+  await render(<QuizScreen />);
+  await screen.findByText('Retry question');
+  jest.spyOn(quizService, 'answerQuestion').mockResolvedValue({ correct: true, chosen_index: 0, correct_index: 0, explanation: 'Explanation' } as any);
+  await fireEvent.press(screen.getByText('Correct'));
+  await fireEvent.press(await screen.findByText('See Results →'));
+  expect(await screen.findByText(/Could not save quiz progress/)).toBeTruthy();
+  expect(screen.queryByText('Quiz Passed!')).toBeNull();
+  await fireEvent.press(screen.getByText('Retry saving result'));
+  expect(await screen.findByText('Quiz Passed!')).toBeTruthy();
+  expect(save).toHaveBeenCalledTimes(2);
 });

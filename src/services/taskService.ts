@@ -3,10 +3,11 @@ import { MOCK_TASKS } from '@/lib/mockData';
 import { Task, TaskFormData, TaskStatus } from '@/types';
 
 let mockTasksStore: Task[] = [...MOCK_TASKS];
+let mockId = 0;
 
 export const taskService = {
   async getTasks(userId: string): Promise<Task[]> {
-    if (IS_MOCK_MODE) return mockTasksStore.filter((t) => t.user_id === userId || true);
+    if (IS_MOCK_MODE) return mockTasksStore.filter((t) => t.user_id === userId);
 
     const { data, error } = await supabase!
       .from('tasks')
@@ -21,7 +22,7 @@ export const taskService = {
   async createTask(userId: string, formData: TaskFormData): Promise<Task> {
     const now = new Date().toISOString();
     const newTask: Task = {
-      id: `task-${Date.now()}`,
+      id: `task-${Date.now()}-${++mockId}`,
       user_id: userId,
       ...formData,
       module_id: formData.module_id ?? null,

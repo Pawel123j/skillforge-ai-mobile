@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useThemeStore } from '@/stores/themeStore';
 import { useToastStore } from '@/stores/toastStore';
-import { useAuthStore } from '@/stores/authStore';
+import { captureSession, useAuthStore } from '@/stores/authStore';
 import { newAttemptId, quizService } from '@/services/quizService';
 import { progressService } from '@/services/progressService';
 import { Button } from '@/components/common/Button';
@@ -38,11 +38,13 @@ function QuizContent({ moduleId }: { moduleId: string }) {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answeredCorrectly, setAnsweredCorrectly] = useState<boolean | null>(null);
   const [score, setScore] = useState(0);
-  const [attemptId] = useState(newAttemptId);
+  const [attemptId, setAttemptId] = useState(newAttemptId);
   const [isAnswering, setIsAnswering] = useState(false);
   const [state, setState] = useState<QuizState>('question');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const saving = useRef(false);
 
   const goalColor = profile?.learning_goal ? GoalColors[profile.learning_goal] : colors.primary;
 
@@ -79,33 +81,44 @@ function QuizContent({ moduleId }: { moduleId: string }) {
   };
 
   const handleNext = async () => {
+    if (saving.current) return;
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((i) => i + 1);
       setSelectedAnswer(null);
       setAnsweredCorrectly(null);
     } else {
-      // Quiz complete
+      // Quiz complete: the server scores the attempt (SF-02). finish_quiz is
+      // idempotent per attempt, so a failed save can simply be retried.
+      if (!userId || !progress) return;
+      const currentSession = captureSession();
+      saving.current = true;
       setIsSaving(true);
+      setSaveError(null);
       try {
         const { result, progress: serverProgress } = await quizService.finishQuiz(
           attemptId,
-          userId!,
-          moduleId!,
+          userId,
+          moduleId,
           score,
           questions.length
         );
+        if (!currentSession()) return;
         setScore(result.score);
 
-        const wasCompleted = progress?.completed_modules.includes(moduleId!) ?? false;
-        if (result.passed && progress && !wasCompleted) {
-          const updated = serverProgress ?? (await progressService.completeModule(userId!, moduleId!, progress));
+        const wasCompleted = progress.completed_modules.includes(moduleId);
+        if (result.passed && !wasCompleted) {
+          const updated = serverProgress ?? (await progressService.completeModule(userId, moduleId, progress));
+          if (!currentSession()) return;
           updateProgress(updated);
           showXP(100);
           setTimeout(() => showAchievement('Module Complete! 🎓', 'Next module is now unlocked'), 700);
         }
-      } finally {
-        setIsSaving(false);
         setState('result');
+      } catch {
+        if (currentSession()) setSaveError('Could not save quiz progress. Your answers are kept. Try again.');
+      } finally {
+        saving.current = false;
+        setIsSaving(false);
       }
     }
   };
@@ -173,6 +186,10 @@ function QuizContent({ moduleId }: { moduleId: string }) {
                   setScore(0);
                   setSelectedAnswer(null);
                   setAnsweredCorrectly(null);
+                  setSaveError(null);
+                  // Answers are final per attempt on the server, so a retry
+                  // needs a fresh attempt id.
+                  setAttemptId(newAttemptId());
                   setState('question');
                 }}
                 style={[styles.resultBtn, { backgroundColor: goalColor }]}
@@ -300,9 +317,10 @@ function QuizContent({ moduleId }: { moduleId: string }) {
         )}
 
         {/* Next Button */}
+        {saveError && <Text accessibilityRole="alert" style={{ color: colors.text }}>{saveError}</Text>}
         {selectedAnswer !== null && (
           <Button
-            title={currentIndex < questions.length - 1 ? 'Next Question →' : 'See Results →'}
+            title={saveError ? 'Retry saving result' : currentIndex < questions.length - 1 ? 'Next Question →' : 'See Results →'}
             onPress={handleNext}
             loading={isSaving}
             fullWidth
