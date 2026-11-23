@@ -43,7 +43,7 @@ const TOAST_COLORS: Record<ToastType, string> = {
 
 export function ToastItem({ config, onDismiss }: ToastItemProps) {
   const { colors } = useThemeStore();
-  const translateY = useAnimatedValue(-100);
+  const [translateY] = useState(() => new Animated.Value(-100));
   const [opacity] = useState(() => new Animated.Value(0));
   const [scale] = useState(() => new Animated.Value(0.85));
   const color = TOAST_COLORS[config.type];
