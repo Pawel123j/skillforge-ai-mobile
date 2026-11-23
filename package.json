@@ -22,7 +22,6 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/netinfo": "12.0.1",
     "@supabase/supabase-js": "^2.43.4",
-    "babel-plugin-module-resolver": "^5.0.3",
     "date-fns": "^3.6.0",
     "expo": "~58.0.14",
     "expo-constants": "~58.0.12",
@@ -74,5 +73,6 @@
   },
   "engines": {
     "node": "^22.13.0 || ^24.3.0 || ^26.0.0 || >=27.0.0"
-  }
+  },
+  "packageManager": "npm@11.19.1"
 }
