@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, useAnimatedValue } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useThemeStore } from '@/stores/themeStore';
 
 interface ProgressBarProps {
@@ -22,7 +22,7 @@ export function ProgressBar({
   const { colors } = useThemeStore();
   const barColor = color ?? colors.primary;
   const clampedProgress = Math.max(0, Math.min(100, progress));
-  const animatedWidth = useAnimatedValue(0);
+  const [animatedWidth] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (animated) {
