@@ -7,10 +7,9 @@ import { spawnSync } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
 const patches = require('./security-patches.json');
-const { bracesChecks, forgeChecks, sprintfChecks } = require('./security-regressions.cjs');
+const { bracesChecks, sprintfChecks } = require('./security-regressions.cjs');
 const reviewed = {
   braces: ['https://github.com/advisories/GHSA-vfj7-8cjw-p6xm', bracesChecks],
-  'node-forge': ['https://github.com/advisories/GHSA-86w9-cpqp-85rv', forgeChecks],
   'sprintf-js': ['https://github.com/advisories/GHSA-hp3w-g68c-fv3c', sprintfChecks],
 };
 const npm = process.env.npm_execpath;
